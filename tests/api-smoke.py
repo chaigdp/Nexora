@@ -3,19 +3,23 @@ import urllib.request, urllib.error, http.cookiejar, json, os, uuid
 base=os.getenv('NEXORA_TEST_URL','http://localhost:4173')
 def client():
     return urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-def call(c,data=None,expected=200):
-    req=urllib.request.Request(base+'/api/nexora',data=json.dumps(data).encode() if data else None,headers={'Content-Type':'application/json','Origin':base})
+def call(c,data=None,expected=200,proof=True):
+    req=urllib.request.Request(base+'/api/nexora',data=json.dumps(data).encode() if data else None,headers={'Content-Type':'application/json','Origin':base,**({'X-Nexora-Access':getattr(c,'access','')} if proof else {})})
     try:
         r=c.open(req);status=r.status;body=json.load(r)
     except urllib.error.HTTPError as e:
         status=e.code;body=json.load(e)
     assert status==expected,(status,body)
+    if 'access' in body:c.access=body['access']
     return body
 one,two=client(),client()
 call(one,expected=401)
 call(one,{'action':'login','email':'demo@nexora.app','password':'wrongpassword'},401)
 for c in (one,two): call(c,{'action':'login','email':'demo@nexora.app','password':'NexoraDemo2026!'})
 a,b=call(one),call(two)
+call(one,expected=401,proof=False)
+assert call(one)['demo']
+assert not any(cookie.expires for cookie in one.handlers[-1].cookiejar) if hasattr(one.handlers[-1],'cookiejar') else True
 assert len(a['projects'])==len(b['projects'])==30
 assert len(a['tasks'])==210
 assert set(p['id'] for p in a['projects']).isdisjoint(p['id'] for p in b['projects'])
@@ -46,4 +50,4 @@ assert len(call(personal)['projects'])==1
 req=urllib.request.Request(base+'/api/nexora',data=b'{}',headers={'Content-Type':'application/json','Origin':'https://invalid.example'})
 try:personal.open(req);raise AssertionError('Origem externa aceita')
 except urllib.error.HTTPError as e:assert e.code==403
-print('PASS: login, logout, cadastro, persistência, 30 casos, edição, isolamento, entregas críticas, histórico e proteção de origem.')
+print('PASS: login, logout, cadastro, persistência, 30 casos, edição, isolamento, entregas críticas, histórico e proteção de origem e recusa de cookie sem comprovação da abertura atual.')
