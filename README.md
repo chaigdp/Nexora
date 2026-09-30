@@ -7,8 +7,12 @@ Plataforma de acompanhamento de implantações de sistemas, criada para a área 
 - Usuário: demo@nexora.app
 - Senha: NexoraDemo2026!
 - Cada entrada cria uma carteira isolada com 30 empresas inventadas e 210 entregas.
-- A sessão dura 7 dias. Recarregar a página mantém os dados. Sair e entrar novamente na demonstração cria outra carteira.
+- E-mail e senha são solicitados em toda abertura ou recarga. Não existe entrada automática por cookie. A autorização fica somente na memória da abertura atual e expira em até 8 horas. Um novo acesso à demonstração cria outra carteira; os dados pessoais permanecem associados à conta.
 - Para sua carteira pessoal, use Criar minha conta pessoal. O cadastro começa vazio e permite retornar usando e-mail e senha.
+
+## Tela inicial
+
+Depois de entrar com e-mail e senha, o Nexora abre a tela Início. Os módulos são organizados em cartões: Implantações e Pendências na operação; Visão geral, Resultados e Guia de uso no acompanhamento. O botão Início permite retornar a essa seleção.
 
 ## Funcionalidades implementadas
 
@@ -38,7 +42,7 @@ Não colocar dados pessoais, chaves de serviço ou senhas privadas no repositór
 
 ## Validação
 
-Verificação de tipos, compilação e testes locais de login válido/inválido, cadastro, persistência após novo acesso pessoal, logout, gravação, isolamento entre visitantes, bloqueio de conclusão, histórico e origem externa. Veja docs/VALIDACAO.md.
+Verificação de tipos, compilação e testes locais de login válido/inválido, cadastro, persistência após novo acesso pessoal, logout, gravação, isolamento entre visitantes, bloqueio de conclusão, histórico e origem externa. Veja docs/VALIDACAO.md. O teste adicional de acesso obrigatório é executado com `node tests/auth-session.mjs`.
 
 ## Próximas versões e limites
 
