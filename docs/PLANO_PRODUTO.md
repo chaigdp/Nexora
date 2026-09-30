@@ -2,7 +2,7 @@
 
 Data: 30/09/2026
 Responsável pelo produto: Chaiane de Paula
-Estado: proposta para avaliação. A aplicação ainda não foi implementada, testada ou publicada.
+Estado: direção aprovada; primeira versão implementada e testada localmente. Consulte README.md para o estado e os limites da entrega.
 
 ## Objetivo
 Plataforma utilizável para acompanhar implantações de sistemas e apresentar competências de uma analista de implementação de ERP em entrevistas. Onboarding significa orientação e acompanhamento inicial do cliente; pronúncia aproximada: ón-bór-ding.
@@ -11,7 +11,7 @@ Plataforma utilizável para acompanhar implantações de sistemas e apresentar c
 - Nexora independente, capaz de acompanhar vários sistemas e fornecedores.
 - Integração com Orbytta em etapa posterior, após analisar os pontos de integração e permissões disponíveis.
 - Interface com a identidade da referência Nexora Academy: azul escuro, ciano, verde e navegação clara.
-- Serviço da aplicação em Python, respeitando a preferência da responsável. Banco relacional persistente. A escolha de hospedagem e tecnologias será registrada após verificar viabilidade, custos e recursos disponíveis.
+- Primeira versão em TypeScript no ambiente de hospedagem disponível, com banco relacional D1. A preferência por Python fica registrada para integrações futuras. Veja docs/DECISOES.md.
 - Repositório de trabalho: https://github.com/chaigdp/Nexora.
 - Demonstração com dados inventados, identificados e separados dos dados de trabalho. Nunca apresentar exemplos como clientes reais.
 
@@ -66,10 +66,11 @@ Plataforma utilizável para acompanhar implantações de sistemas e apresentar c
 8. Documentar entrega: instruções de execução, decisões, modelo de dados, testes, roteiro de entrevista e próximos passos no GitHub.
 9. Avaliar integração Orbytta: inspecionar interfaces existentes e construir integração somente com contrato e permissões definidos.
 
-## Decisões pendentes da responsável
-- Aprova Nexora independente, com integração Orbytta posterior?
-- Prefere começar com uso individual ou já incluir o portal do cliente?
-- Demonstração deve permitir editar em ambiente isolado ou apenas consultar?
+## Decisões aprovadas pela responsável
+- Nexora independente; integração Orbytta posterior.
+- Área da analista primeiro; portal do cliente em versões futuras.
+- Demonstração editável e isolada por visitante.
 
 ## Limites atuais
-Este documento é uma proposta. Não confirma aplicação pronta, hospedagem, domínio, banco provisionado, integração ou credenciais existentes.
+A primeira versão e seus limites estão descritos no README. Ideias de capacidade, aprovação formal de escopo e integração ainda são etapas futuras. A publicação é verificada separadamente.
+
