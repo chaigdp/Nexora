@@ -1,0 +1,2 @@
+import {database} from '../../../db/raw';
+export async function GET(){const start=Date.now();try{await database().prepare('SELECT 1 AS ok').first();return Response.json({status:'ok',service:'vectta',version:'2.0',latencyMs:Date.now()-start},{headers:{'Cache-Control':'no-store'}});}catch{console.error(JSON.stringify({event:'health.failed',service:'vectta'}));return Response.json({status:'unavailable'},{status:503,headers:{'Cache-Control':'no-store'}});}}

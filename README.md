@@ -1,51 +1,42 @@
-# Vectta
+# Vectta 2.0
 
-Plataforma de acompanhamento de implantações de sistemas, criada para a área da analista de implementação de Chaiane de Paula.
+Plataforma de gestão de implementação de sistemas da CelPhius Tecnologia. Carteira da analista com clientes, entregas, riscos fundamentados, cronograma, requisitos, testes, chamados, processos, parametrizações, prontidão e rentabilidade.
 
-## Acesso de demonstração
+## Acessar
 
-- Usuário: demo@vectta.app
-- Senha: VecttaDemo2026!
-- Cada entrada cria uma carteira isolada com 30 empresas inventadas e 210 entregas.
-- E-mail e senha são solicitados em toda abertura ou recarga. Não existe entrada automática por cookie. A autorização fica somente na memória da abertura atual e expira em até 8 horas. Um novo acesso à demonstração cria outra carteira; os dados pessoais permanecem associados à conta.
-- Para sua carteira pessoal, use Criar minha conta pessoal. O cadastro começa vazio e permite retornar usando e-mail e senha.
+https://vectta.chaianegdp.chatgpt.site
 
-## Tela inicial
+Demonstração: `demo@vectta.app` / `VecttaDemo2026!`. Cada entrada cria 30 empresas fictícias e 210 entregas em uma carteira isolada. Para manter seus projetos, crie sua conta pessoal: ela começa vazia e salva os dados no banco. Login é exigido a cada abertura ou recarga; a comprovação de acesso fica na memória da página. A sessão tem limite de 8 horas.
 
-Depois de entrar com e-mail e senha, o Vectta abre a tela Início. Os módulos são organizados em cartões: Implantações e Pendências na operação; Visão geral, Resultados e Guia de uso no acompanhamento. O botão Início permite retornar a essa seleção.
+## Negócio
 
-## Funcionalidades implementadas
+Clientes incluem contato, identificação empresarial, vínculo CRM, objetivo mensurável, receita e esforço. Pendências incluem insumos, dependência, responsável, status, andamento e evidência. Entrada em operação exige critérios verificados pelo servidor. Os registros operacionais começam vazios, inclusive na demonstração, para que evidências e aceites não sejam inventados.
 
-Carteira de implantações, cadastro e edição de clientes, etapas, escopo, datas, responsável e risco informado. Entregas e pendências com prioridade, bloqueio, dependência, responsável, prazo e indicação de criticidade. Histórico de alterações. Indicadores de carteira atual, conclusões por período e duração média. Exportação CSV e guia de uso.
-
-A conclusão de uma implantação exige data válida e nenhuma entrega crítica pendente. Concluir uma tarefa bloqueada ou dependente de uma tarefa aberta é recusado pelo servidor.
+Importação CSV permite mapear colunas e conferir até 50 projetos antes de gravar. CRM + identificador externo não pode repetir. Exportação inclui campos comerciais. A fila de integração registra mudanças de implantação, mas nenhum conector HubSpot está ativo.
 
 ## Arquitetura
 
-Interface React em português; serviço TypeScript em Cloudflare Workers; banco relacional Cloudflare D1. Senhas pessoais derivadas por PBKDF2, sessões opacas em cookies HttpOnly, verificação de origem, consultas parametrizadas e isolamento de todas as consultas e alterações por carteira. O banco não é o armazenamento do navegador.
+React, TypeScript, Cloudflare Workers e banco D1. Validação de entrada, consultas parametrizadas, isolamento por carteira, verificação de origem, senhas derivadas por PBKDF2 e sessões HttpOnly. A rota `/api/vectta` é canônica; `/api/nexora` e identificadores internos antigos permanecem apenas para compatibilidade de sessões e integrações existentes.
 
-A proposta inicial priorizava Python. A hospedagem disponível utiliza o ambiente Workers do starter; a primeira versão foi implementada em TypeScript para entregar aplicação hospedada e banco persistente. Integrações futuras podem usar Python, sem exigir que a interface seja reescrita.
+## Executar e validar
 
-## Executar
+Requer Node.js 24 e pnpm 11.25.0.
 
-Requer Node.js 22 ou superior. O pnpm-lock.yaml é o arquivo de versões reproduzíveis.
+1. `pnpm install --frozen-lockfile`
+2. `pnpm exec tsc --noEmit`
+3. `node tests/auth-session.mjs`
+4. `pnpm build`
+5. Aplicar os três arquivos SQL de `drizzle/`, em ordem, no banco local: `pnpm exec wrangler d1 execute site-creator-d1 --local --config dist/server/wrangler.json --file drizzle/0000_calm_preak.sql --persist-to .wrangler/state`; repetir para `0001_sharp_stick.sql` e `0002_operations.sql`.
+6. `pnpm start`
 
-1. Instalar dependências: `pnpm install --frozen-lockfile`.
-2. Gerar aplicação: `pnpm build`.
-3. Aplicar cada arquivo SQL de drizzle/ em ordem no banco local, usando `pnpm exec wrangler d1 execute site-creator-d1 --local --config dist/server/wrangler.json --file drizzle/0000_calm_preak.sql --persist-to .wrangler/state`, seguido da migração 0001.
-4. Iniciar aplicação local: `pnpm start`.
-5. Testar: `VECTTA_TEST_URL=http://localhost:8787 python3 tests/api-smoke.py`. Ajuste o endereço para o mostrado no terminal.
+A hospedagem gerenciada mantém o banco pelo vínculo DB em `.openai/hosting.json`. O identificador do banco na configuração local é um marcador de desenvolvimento. Não usá-lo como identificador real em hospedagem própria.
 
-Para uma hospedagem própria, provisione um banco D1 e configure seu identificador real no arquivo Wrangler gerado. O identificador de banco do starter é somente um marcador para desenvolvimento local. A publicação gerenciada provisiona o banco a partir do vínculo lógico DB do manifesto.
+## Entrega e saúde
 
-Não colocar dados pessoais, chaves de serviço ou senhas privadas no repositório. A senha de demonstração é intencionalmente pública e não concede acesso a carteiras pessoais.
+A integração contínua em `.github/workflows/ci.yml` verifica tipos, testes de serviço e compilação. A publicação atual usa Sites. `/api/health` verifica conectividade do banco e retorna 200 ou 503 sem expor dados de clientes.
 
-## Validação
+## Limites explícitos
 
-Verificação de tipos, compilação e testes locais de login válido/inválido, cadastro, persistência após novo acesso pessoal, logout, gravação, isolamento entre visitantes, bloqueio de conclusão, histórico e origem externa. Veja docs/VALIDACAO.md. O teste adicional de acesso obrigatório é executado com `node tests/auth-session.mjs`.
+Ainda pendentes: domínio próprio, recuperação/verificação de e-mail, permissões por equipe, anexos privados, limpeza automática de demonstrações, restauração de cópia de segurança testada, alertas externos e sincronização CRM bidirecional. Manual ERP registra procedimentos do projeto; não substitui documentação oficial ou validação fiscal. O aceite é registrado pela analista, não assinado digitalmente pelo cliente.
 
-## Próximas versões e limites
-
-Acompanhamento do cliente, integração Orbytta, recuperação e verificação de e-mail, permissões por equipe, anexos, exclusão/arquivamento, capacidade de horas, custos, aprovações formais e automação de risco não fazem parte desta entrega. Domínio próprio não foi comprado. As carteiras de demonstração expiram para acesso após 7 dias, mas ainda não têm rotina de exclusão física. Antes de usar dados reais sensíveis, validar recuperação de acesso, proteção de dados e cópias de segurança com restauração.
-
-Consulte docs/DECISOES.md e docs/ROTEIRO_DEMONSTRACAO.md.
+[Escopo e próximos diferenciais](docs/VECTTA_2_PRODUTO.md). A senha demo é intencionalmente pública; não permite acessar carteiras pessoais. Não enviar segredos ou dados reais ao repositório.
