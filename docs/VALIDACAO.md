@@ -19,3 +19,9 @@ Testes automatizados locais em banco D1 de desenvolvimento:
 Também executadas verificação TypeScript e compilação do pacote de publicação.
 
 Não houve inspeção visual com navegador automatizado. O endereço publicado será confirmado pelo serviço de publicação; esses testes não constituem auditoria de segurança ou ensaio de restauração de backup.
+
+## Atualização de acesso obrigatório e módulos
+
+Teste adicional: `node tests/auth-session.mjs`. O teste executa os manipuladores reais do serviço com SQLite em memória e confirma login inválido, exigência da comprovação da abertura atual, rejeição de leitura/escrita usando somente cookie antigo, cookie não persistente, isolamento da demonstração, logout e preservação de registros pessoais após novo login. Verificação de tipos executada após a alteração.
+
+A prévia supervisionada informou estar ativa, mas não foi alcançada pelo teste HTTP neste ambiente. A atualização foi verificada pelo teste direto do serviço; não houve inspeção visual com navegador.
