@@ -12,7 +12,7 @@ export default function Operations({data,view,api,reload,run,busy,select}:{data:
  const [filter,setFilter]=useState(''),[editing,setEditing]=useState<Operation|null>(null),[csv,setCSV]=useState<{headers:string[];rows:string[][]}|null>(null),[map,setMap]=useState<Record<string,string>>({}),[crm,setCRM]=useState('HubSpot'),[fileError,setFileError]=useState(''),[recordError,setRecordError]=useState('');
  const projects=data.projects.filter(p=>!filter||p.id===filter),records=data.records||[],kind=kinds[view];
  const field=(name:string,label:string,value:string,type='text',required=false)=><label>{label}<input name={name} defaultValue={value} type={type} required={required} maxLength={2000}/></label>;
- const values=(row:string[])=>Object.fromEntries(Object.entries(map).map(([key,index])=>[key,row[Number(index)]||'']));
+ const values=(row:string[])=>Object.fromEntries(Object.entries(map).map(([key,index])=>[key,index===''?'':row[Number(index)]||'']));
  const validImport=!!csv&&['client','externalId'].every(k=>map[k]!==undefined&&map[k]!=='')&&csv.rows.length<=50;
  const rowActions=(p:Project)=><button className="textbutton" onClick={()=>select(p.id)}>Abrir implantação <ArrowUpRight size={15}/></button>;
  return <section className="operations"><div className="toolbar"><label>Cliente<select value={filter} onChange={e=>setFilter(e.target.value)}><option value="">Toda a carteira</option>{data.projects.map(p=><option value={p.id} key={p.id}>{p.client}</option>)}</select></label>{kind&&<button className="primary" disabled={!data.projects.length} onClick={()=>setEditing(fresh(filter||data.projects[0]?.id,kind))}><Plus size={17}/> {view==='Entrada em operação'?'Registrar aceite':'Novo registro'}</button>}</div>
