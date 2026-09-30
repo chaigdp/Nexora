@@ -8,7 +8,7 @@ A referência inicial propunha serviço Python. A infraestrutura de publicação
 
 ## Isolamento
 
-O usuário demo não tem uma carteira compartilhada. Cada entrada recebe um identificador de carteira novo e uma sessão imprevisível. O banco guarda o resumo criptográfico do token; o token completo fica somente no cookie HttpOnly. Todas as consultas e alterações verificam a carteira autorizada da sessão. Identificadores enviados pelo visitante não concedem acesso a carteiras alheias.
+O usuário demo não tem uma carteira compartilhada. Cada entrada recebe um identificador de carteira novo e uma sessão imprevisível, com comprovação exigida em cada chamada e mantida somente em memória durante a abertura atual. O banco guarda o resumo criptográfico do token; o token completo fica somente no cookie HttpOnly. Todas as consultas e alterações verificam a carteira autorizada da sessão. Identificadores enviados pelo visitante não concedem acesso a carteiras alheias.
 
 Contas pessoais associam uma carteira persistente ao e-mail cadastrado. Uma conta cadastrada não é automaticamente uma conta de administração da hospedagem.
 
@@ -19,3 +19,9 @@ Dados relacionais no D1, com alterações de schema em migrações Drizzle. Exem
 ## Escopo futuro
 
 A área do cliente requer novos papéis e autorização por projeto. A integração Orbytta depende de análise das interfaces existentes e contrato de integração. Ainda não há anexos, aprovação de escopo pelo cliente, modelo de horas, recuperação de senha ou limpeza agendada de demonstrações.
+
+## Atualização de acesso e tela inicial | 30/09/2026
+
+A pedido da Chai, a aplicação passa a solicitar e-mail e senha em toda abertura, recarga ou retorno por restauração de página. A autorização adicional fica apenas em memória. O servidor exige cookie de sessão e a comprovação da abertura atual para ler ou escrever registros. O cookie não tem duração persistente, e a sessão tem limite de 8 horas. A carteira pessoal é mantida no banco; a demonstração cria outra cópia após novo acesso.
+
+Após autenticar, a primeira tela é Início: módulos agrupados em Operação e Acompanhamento e evolução, inspirados na referência CXIP enviada pela Chai. Os cartões abrem as funcionalidades existentes e não alteram permissões.
