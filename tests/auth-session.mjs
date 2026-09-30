@@ -23,10 +23,10 @@ globalThis.__testDb={
 const {GET,POST}=await import(pathToFileURL(resolve(out,'route.mjs')).href);
 const base='https://test.nexora.invalid';
 const client=()=>({cookie:'',access:''});
-async function call(c,data=null,status=200,proof=true){const req=new Request(base+'/api/nexora',{method:data?'POST':'GET',headers:{Origin:base,'Content-Type':'application/json',cookie:c.cookie,...(proof?{'X-Nexora-Access':c.access}:{})},...(data?{body:JSON.stringify(data)}:{})});const r=await(data?POST(req):GET(req));const result=await r.json();assert.equal(r.status,status,JSON.stringify(result));const cookie=r.headers.get('set-cookie');if(cookie){c.cookie=cookie.split(';')[0];if(data?.action==='login'||data?.action==='register')assert(!cookie.includes('Max-Age='),'Não deve persistir cookie de acesso');}if(result.access)c.access=result.access;return result;}
+async function call(c,data=null,status=200,proof=true){const req=new Request(base+'/api/nexora',{method:data?'POST':'GET',headers:{Origin:base,'Content-Type':'application/json',cookie:c.cookie,...(proof?{'X-Vectta-Access':c.access}:{})},...(data?{body:JSON.stringify(data)}:{})});const r=await(data?POST(req):GET(req));const result=await r.json();assert.equal(r.status,status,JSON.stringify(result));const cookie=r.headers.get('set-cookie');if(cookie){c.cookie=cookie.split(';')[0];if(data?.action==='login'||data?.action==='register')assert(!cookie.includes('Max-Age='),'Não deve persistir cookie de acesso');}if(result.access)c.access=result.access;return result;}
 const a=client(),b=client();await call(a,null,401);
 await call(a,{action:'login',email:'demo@nexora.app',password:'WrongPassword2026'},401);
-for(const c of [a,b])await call(c,{action:'login',email:'demo@nexora.app',password:'NexoraDemo2026!'});
+for(const c of [a,b])await call(c,{action:'login',email:'demo@nexora.app',password:'VecttaDemo2026!'});
 const sa=await call(a),sb=await call(b);assert.equal(sa.projects.length,30);assert.equal(sa.tasks.length,210);assert(!sb.projects.some(p=>p.id===sa.projects[0].id));
 await call(a,null,401,false);await call(a,{action:'project.save',project:sa.projects[0]},401,false);
 const p={...sa.projects[0],client:'Teste da abertura'};await call(a,{action:'project.save',project:p});assert.equal((await call(a)).projects.find(x=>x.id===p.id).client,p.client);await call(b,{action:'project.save',project:p},404);

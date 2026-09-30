@@ -1,18 +1,18 @@
-# Nexora
+# Vectta
 
 Plataforma de acompanhamento de implantações de sistemas, criada para a área da analista de implementação de Chaiane de Paula.
 
 ## Acesso de demonstração
 
-- Usuário: demo@nexora.app
-- Senha: NexoraDemo2026!
+- Usuário: demo@vectta.app
+- Senha: VecttaDemo2026!
 - Cada entrada cria uma carteira isolada com 30 empresas inventadas e 210 entregas.
 - E-mail e senha são solicitados em toda abertura ou recarga. Não existe entrada automática por cookie. A autorização fica somente na memória da abertura atual e expira em até 8 horas. Um novo acesso à demonstração cria outra carteira; os dados pessoais permanecem associados à conta.
 - Para sua carteira pessoal, use Criar minha conta pessoal. O cadastro começa vazio e permite retornar usando e-mail e senha.
 
 ## Tela inicial
 
-Depois de entrar com e-mail e senha, o Nexora abre a tela Início. Os módulos são organizados em cartões: Implantações e Pendências na operação; Visão geral, Resultados e Guia de uso no acompanhamento. O botão Início permite retornar a essa seleção.
+Depois de entrar com e-mail e senha, o Vectta abre a tela Início. Os módulos são organizados em cartões: Implantações e Pendências na operação; Visão geral, Resultados e Guia de uso no acompanhamento. O botão Início permite retornar a essa seleção.
 
 ## Funcionalidades implementadas
 
@@ -34,7 +34,7 @@ Requer Node.js 22 ou superior. O pnpm-lock.yaml é o arquivo de versões reprodu
 2. Gerar aplicação: `pnpm build`.
 3. Aplicar cada arquivo SQL de drizzle/ em ordem no banco local, usando `pnpm exec wrangler d1 execute site-creator-d1 --local --config dist/server/wrangler.json --file drizzle/0000_calm_preak.sql --persist-to .wrangler/state`, seguido da migração 0001.
 4. Iniciar aplicação local: `pnpm start`.
-5. Testar: `NEXORA_TEST_URL=http://localhost:8787 python3 tests/api-smoke.py`. Ajuste o endereço para o mostrado no terminal.
+5. Testar: `VECTTA_TEST_URL=http://localhost:8787 python3 tests/api-smoke.py`. Ajuste o endereço para o mostrado no terminal.
 
 Para uma hospedagem própria, provisione um banco D1 e configure seu identificador real no arquivo Wrangler gerado. O identificador de banco do starter é somente um marcador para desenvolvimento local. A publicação gerenciada provisiona o banco a partir do vínculo lógico DB do manifesto.
 

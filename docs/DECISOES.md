@@ -1,6 +1,6 @@
 # Decisões de produto e arquitetura
 
-Aprovado em 30/09/2026: Nexora independente; primeira versão somente com área da analista; área do cliente em versão posterior; visitantes podem editar dados isolados.
+Aprovado em 30/09/2026: Vectta independente; primeira versão somente com área da analista; área do cliente em versão posterior; visitantes podem editar dados isolados.
 
 ## Hospedagem e linguagem
 
@@ -24,4 +24,4 @@ A área do cliente requer novos papéis e autorização por projeto. A integraç
 
 A pedido da Chai, a aplicação passa a solicitar e-mail e senha em toda abertura, recarga ou retorno por restauração de página. A autorização adicional fica apenas em memória. O servidor exige cookie de sessão e a comprovação da abertura atual para ler ou escrever registros. O cookie não tem duração persistente, e a sessão tem limite de 8 horas. A carteira pessoal é mantida no banco; a demonstração cria outra cópia após novo acesso.
 
-Após autenticar, a primeira tela é Início: módulos agrupados em Operação e Acompanhamento e evolução, inspirados na referência CXIP enviada pela Chai. Os cartões abrem as funcionalidades existentes e não alteram permissões.
+Após autenticar, a primeira tela é Início: módulos agrupados em Operação e Acompanhamento e evolução, inspirados na referência Fluxion enviada pela Chai. Os cartões abrem as funcionalidades existentes e não alteram permissões.

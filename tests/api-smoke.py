@@ -1,10 +1,10 @@
 """Testes da aplicação local. Não acessar uma carteira de produção."""
 import urllib.request, urllib.error, http.cookiejar, json, os, uuid
-base=os.getenv('NEXORA_TEST_URL','http://localhost:4173')
+base=os.getenv('VECTTA_TEST_URL','http://localhost:4173')
 def client():
     return urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 def call(c,data=None,expected=200,proof=True):
-    req=urllib.request.Request(base+'/api/nexora',data=json.dumps(data).encode() if data else None,headers={'Content-Type':'application/json','Origin':base,**({'X-Nexora-Access':getattr(c,'access','')} if proof else {})})
+    req=urllib.request.Request(base+'/api/nexora',data=json.dumps(data).encode() if data else None,headers={'Content-Type':'application/json','Origin':base,**({'X-Vectta-Access':getattr(c,'access','')} if proof else {})})
     try:
         r=c.open(req);status=r.status;body=json.load(r)
     except urllib.error.HTTPError as e:
@@ -14,8 +14,8 @@ def call(c,data=None,expected=200,proof=True):
     return body
 one,two=client(),client()
 call(one,expected=401)
-call(one,{'action':'login','email':'demo@nexora.app','password':'wrongpassword'},401)
-for c in (one,two): call(c,{'action':'login','email':'demo@nexora.app','password':'NexoraDemo2026!'})
+call(one,{'action':'login','email':'demo@vectta.app','password':'wrongpassword'},401)
+for c in (one,two): call(c,{'action':'login','email':'demo@vectta.app','password':'VecttaDemo2026!'})
 a,b=call(one),call(two)
 call(one,expected=401,proof=False)
 assert call(one)['demo']

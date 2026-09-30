@@ -1,4 +1,4 @@
-# Nexora | Proposta de produto e plano de construção
+# Vectta | Proposta de produto e plano de construção
 
 Data: 30/09/2026
 Responsável pelo produto: Chaiane de Paula
@@ -8,11 +8,11 @@ Estado: direção aprovada; primeira versão implementada e testada localmente. 
 Plataforma utilizável para acompanhar implantações de sistemas e apresentar competências de uma analista de implementação de ERP em entrevistas. Onboarding significa orientação e acompanhamento inicial do cliente; pronúncia aproximada: ón-bór-ding.
 
 ## Direção recomendada
-- Nexora independente, capaz de acompanhar vários sistemas e fornecedores.
+- Vectta independente, capaz de acompanhar vários sistemas e fornecedores.
 - Integração com Orbytta em etapa posterior, após analisar os pontos de integração e permissões disponíveis.
-- Interface com a identidade da referência Nexora Academy: azul escuro, ciano, verde e navegação clara.
+- Interface com a identidade da referência Vectta Academy: azul escuro, ciano, verde e navegação clara.
 - Primeira versão em TypeScript no ambiente de hospedagem disponível, com banco relacional D1. A preferência por Python fica registrada para integrações futuras. Veja docs/DECISOES.md.
-- Repositório de trabalho: https://github.com/chaigdp/Nexora.
+- Repositório de trabalho: https://github.com/chaigdp/vectta.
 - Demonstração com dados inventados, identificados e separados dos dados de trabalho. Nunca apresentar exemplos como clientes reais.
 
 ## Primeira versão proposta
@@ -56,7 +56,7 @@ Plataforma utilizável para acompanhar implantações de sistemas e apresentar c
 - Endereço inicial hospedado; domínio próprio depende da escolha e disponibilidade do nome e do registro, que não será comprado sem autorização.
 
 ## Etapas e critérios de aceite
-1. Aprovar produto: independência do Nexora, amplitude da primeira versão e comportamento da demonstração.
+1. Aprovar produto: independência do Vectta, amplitude da primeira versão e comportamento da demonstração.
 2. Preparar arquitetura e ambiente: dependências reproduzíveis, configuração de exemplo sem segredos e modelo de dados documentado.
 3. Entregar carteira e detalhes: cadastrar, editar e consultar projetos; confirmar persistência após reiniciar a aplicação.
 4. Entregar execução: tarefas, marcos, riscos, escopo e indicadores calculados a partir dos registros.
@@ -67,7 +67,7 @@ Plataforma utilizável para acompanhar implantações de sistemas e apresentar c
 9. Avaliar integração Orbytta: inspecionar interfaces existentes e construir integração somente com contrato e permissões definidos.
 
 ## Decisões aprovadas pela responsável
-- Nexora independente; integração Orbytta posterior.
+- Vectta independente; integração Orbytta posterior.
 - Área da analista primeiro; portal do cliente em versões futuras.
 - Demonstração editável e isolada por visitante.
 
