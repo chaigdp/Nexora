@@ -20,3 +20,6 @@ body{background:#090f20;color:#f1f4fb;background-image:none;font-family:Arial,He
 .product-identity .cp-lockup,.login-story .brand .cp-lockup,.login-brand .brand .cp-lockup{width:208px}
 .sidebar .brand{padding-left:0;padding-right:0}
 .product-company,.login-company{justify-content:flex-start}
+
+.login-story h1{font-size:clamp(32px,3.5vw,50px);letter-spacing:-1.5px}.login-story h1 span{color:#40cdf2}
+@media(max-width:760px){.login-story h1{font-size:clamp(28px,7.5vw,34px);letter-spacing:-1.2px}}
