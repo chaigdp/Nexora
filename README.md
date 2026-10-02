@@ -1,6 +1,6 @@
 # Vectta 2.0
 
-Plataforma de gestão de implementação de sistemas da CelPhius Tecnologia. Carteira da analista com clientes, entregas, riscos fundamentados, cronograma, requisitos, testes, chamados, processos, parametrizações, prontidão e rentabilidade.
+Plataforma de gestão de implementação de sistemas. Carteira da analista com clientes, entregas, riscos fundamentados, cronograma, requisitos, testes, chamados, processos, parametrizações, prontidão e rentabilidade.
 
 ## Acessar
 
