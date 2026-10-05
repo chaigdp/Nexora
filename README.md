@@ -4,6 +4,12 @@ Plataforma de gestão de implementação de sistemas. Carteira da analista com c
 
 ## Acessar
 
+Versão atual recomendada (Supabase):
+
+https://pldxmxgrgyfwtnhxqaji.supabase.co/functions/v1/vectta
+
+Versão legada do ChatGPT Sites (não usar para validar alterações atuais):
+
 https://vectta.chaianegdp.chatgpt.site
 
 Demonstração: `demo@vectta.app` / `VecttaDemo2026!`. Cada entrada cria 30 empresas fictícias e 210 entregas em uma carteira isolada. Para manter seus projetos, crie sua conta pessoal: ela começa vazia e salva os dados no banco. Login é exigido a cada abertura ou recarga; a comprovação de acesso fica na memória da página. A sessão tem limite de 8 horas.
@@ -33,10 +39,10 @@ A hospedagem gerenciada mantém o banco pelo vínculo DB em `.openai/hosting.jso
 
 ## Entrega e saúde
 
-A integração contínua em `.github/workflows/ci.yml` verifica tipos, testes de serviço e compilação. A publicação atual usa Sites. `/api/health` verifica conectividade do banco e retorna 200 ou 503 sem expor dados de clientes.
+A integração contínua em `.github/workflows/ci.yml` verifica tipos, testes de serviço e compilação. A publicação recomendada atual usa uma Supabase Edge Function versionada em `supabase/functions/vectta/index.ts`, com Supabase Auth e PostgreSQL/RLS. O antigo ChatGPT Sites permanece apenas como legado enquanto não houver acesso de republicação. A função pública serve somente a interface; os dados continuam protegidos por autenticação e RLS no banco.
 
 ## Limites explícitos
 
-Ainda pendentes: domínio próprio, recuperação/verificação de e-mail, permissões por equipe, anexos privados, limpeza automática de demonstrações, restauração de cópia de segurança testada, alertas externos e sincronização CRM bidirecional. Manual ERP registra procedimentos do projeto; não substitui documentação oficial ou validação fiscal. O aceite é registrado pela analista, não assinado digitalmente pelo cliente.
+Ainda pendentes: domínio próprio, validação completa do redirecionamento de recuperação de senha por e-mail no ambiente publicado, permissões por equipe, anexos privados, limpeza automática de demonstrações, restauração de cópia de segurança testada, alertas externos e sincronização CRM bidirecional. Manual ERP registra procedimentos do projeto; não substitui documentação oficial ou validação fiscal. O aceite é registrado pela analista, não assinado digitalmente pelo cliente.
 
 [Escopo e próximos diferenciais](docs/VECTTA_2_PRODUTO.md). A senha demo é intencionalmente pública; não permite acessar carteiras pessoais. Não enviar segredos ou dados reais ao repositório.
