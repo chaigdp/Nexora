@@ -1,2 +1,3 @@
-import { env } from 'cloudflare:workers';
-export function database(): D1Database { const db=(env as unknown as {DB:D1Database}).DB; if(!db) throw new Error('Banco indisponível'); return db; }
+export function database(): D1Database {
+  throw new Error('Legacy Cloudflare D1 endpoint is disabled on the Vercel build. The Vectta UI uses Supabase.');
+}
