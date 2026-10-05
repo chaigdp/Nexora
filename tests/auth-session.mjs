@@ -74,7 +74,7 @@ const second=(await call(personal)).tasks.find(t=>t.title==='Dependente');
 await call(personal,{action:'task.save',task:{...first,dependency:second.id}},409);
 await call(personal,{action:'task.save',task:{...first,done:0}},409);
 const stored=(await call(personal)).records[0];await call(b,{action:'operation.save',record:stored},404);
-await call(personal,{action:'logout'});await call(personal,{action:'login',email,password:'PersonalTest2026!'});assert.equal((await call(personal)).records.length,3,'Registros persistem após login');
+await call(personal,{action:'logout'});await call(personal,{action:'login',email,password:'OutraSenhaSegura#2026'});assert.equal((await call(personal)).records.length,3,'Registros persistem após login');
 const {assess}=await import(pathToFileURL(resolve(out,'operations.mjs')).href);
 const risk=assess({...own,due:'2026-09-01'},[{...first,done:0,blocked:1}],[], '2026-09-30');assert.equal(risk.level,'Alto');assert(risk.causes.every(c=>c.reason&&c.action&&c.exit));
 console.log('PASS: módulos, evidência, prontidão, importação atômica, duplicidade, fila, dependência circular, isolamento e persistência.');
