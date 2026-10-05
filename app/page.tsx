@@ -309,16 +309,70 @@ export default function Page(){
    const j:any=await r.json();if(!r.ok)throw new Error(j.message||'Não foi possível salvar o feedback.');setFeedbacks(x=>[j[0],...x]);setFeedbackForm(x=>({...x,contact_name:'',contact_role:'',comment:''}));setNotice('Feedback registrado.');
   }catch(e){setError(e instanceof Error?e.message:'Falha ao salvar feedback.')}finally{setBusy(false)}
  }
+ function parseDelimitedLine(line:string,sep:string){
+  const out:string[]=[];let cur='';let quoted=false;
+  for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(quoted&&line[i+1]==='"'){cur+='"';i++}else quoted=!quoted}else if(ch===sep&&!quoted){out.push(cur.trim());cur=''}else cur+=ch}
+  out.push(cur.trim());return out;
+ }
+ function normalizeHeader(v:string){return v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
+ async function importCampaignFile(file:File){
+  setError('');setNotice('');
+  if(file.size>3*1024*1024){setError('A lista deve ter no máximo 3 MB.');return}
+  if(!/\.(csv|txt)$/i.test(file.name)){setError('Use um arquivo CSV. No Excel, salve a planilha como CSV UTF-8.');return}
+  try{
+   const raw=(await file.text()).replace(/^\uFEFF/,'');
+   const lines=raw.split(/\r?\n/).filter(x=>x.trim());
+   if(lines.length<2)throw new Error('A planilha precisa ter cabeçalho e pelo menos um contato.');
+   const first=lines[0];const candidates=[';',',','\t'];const sep=candidates.sort((a,b)=>first.split(b).length-first.split(a).length)[0];
+   const headers=parseDelimitedLine(first,sep).map(normalizeHeader);
+   const find=(names:string[])=>headers.findIndex(h=>names.includes(h));
+   const ni=find(['nome','name','contato','contact_name']),pi=find(['telefone','celular','whatsapp','phone','numero','numero de telefone']),ei=find(['email','e-mail']),si=find(['segmento','segment']),gi=find(['grupo','group','group_name']),pri=find(['perfil','profile']);
+   if(pi<0&&ei<0)throw new Error('A planilha precisa ter uma coluna Telefone/Celular/WhatsApp ou E-mail.');
+   const parsed:ImportContact[]=lines.slice(1).map(line=>{const row=parseDelimitedLine(line,sep);return{name:ni>=0?row[ni]||'':'',phone:pi>=0?normalizePhone(row[pi]||''):'',email:ei>=0?row[ei]||'':'',segment:si>=0?row[si]||'':'',group_name:gi>=0?row[gi]||'':'',profile:pri>=0?row[pri]||'':''}}).filter(x=>x.phone||x.email);
+   const seen=new Set<string>();const unique=parsed.filter(x=>{const key=(x.phone||x.email).toLowerCase();if(!key||seen.has(key))return false;seen.add(key);return true});
+   setImportedContacts(unique);setCampaignForm(x=>({...x,recipientMode:'list',listGroup:'Todos',listProfile:'Todos'}));setNotice(unique.length+' contatos carregados da planilha.');
+  }catch(e){setError(e instanceof Error?e.message:'Não foi possível ler a planilha.')}
+ }
+ function downloadCampaignModel(){
+  const content='nome;telefone;email;segmento;grupo;perfil\nMaria Silva;+5531999999999;maria@empresa.com;Saúde;Clientes ativos;Sponsor\n';
+  const blob=new Blob([content],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='modelo-contatos-vectta.csv';a.click();URL.revokeObjectURL(url);
+ }
  async function saveCampaign(){
   if(!campaignForm.name.trim()||!campaignForm.message.trim()){setError('Dê um nome à campanha e escreva a mensagem.');return}
+  if(!campaignTargets.length){setError('Adicione pelo menos um destinatário elegível.');return}
+  if(campaignForm.channel==='WhatsApp'&&!campaignForm.template_name.trim()){setError('Para disparo de WhatsApp, informe o nome do template aprovado na Meta.');return}
   if(demo){setNotice('Na demonstração, a campanha não é persistida.');return}
   if(!session)return;
-  setBusy(true);setError('');
+  setBusy(true);setError('');setNotice('');
   try{
-   const body={user_id:session.user.id,name:campaignForm.name,channel:campaignForm.channel,message:campaignForm.message,audience:campaignForm.audience,status:'Pronta para integração',target_filter:{consentRequired:true,targetCount:campaignTargets.length}};
+   const dedup=new Map<string,CampaignTarget>();
+   campaignTargets.forEach(x=>{const key=campaignForm.channel==='E-mail'?x.email.toLowerCase():normalizePhone(x.phone);if(key&&!dedup.has(key))dedup.set(key,x)});
+   const recipients=[...dedup.values()];
+   const body={user_id:session.user.id,name:campaignForm.name,channel:campaignForm.channel,message:campaignForm.message,audience:campaignForm.audience,status:'Pronta para integração',recipient_mode:campaignForm.recipientMode,template_name:campaignForm.template_name,template_language:campaignForm.template_language,target_filter:{consentRequired:true,targetCount:recipients.length,segment:campaignForm.segment,phase:campaignForm.phase,risk:campaignForm.risk,listGroup:campaignForm.listGroup,listProfile:campaignForm.listProfile}};
    const r=await fetch(SUPA+'/rest/v1/campaigns',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(body)});
-   const j:any=await r.json();if(!r.ok)throw new Error(j.message||'Não foi possível preparar a campanha.');setCampaigns(x=>[j[0],...x]);setCampaignForm({name:'',channel:'WhatsApp',audience:'Todos',message:''});setNotice('Campanha preparada. O envio real depende da integração do canal e só considera contatos com consentimento.');
+   const j:any=await r.json();if(!r.ok)throw new Error(j.message||'Não foi possível preparar a campanha.');
+   const created=j[0];
+   const rows=recipients.map(x=>({user_id:session.user.id,campaign_id:created.id,name:x.name||'',phone:normalizePhone(x.phone||''),email:x.email||'',source:x.source,status:'Pendente'}));
+   const rr=await fetch(SUPA+'/rest/v1/campaign_recipients',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(rows)});
+   const rj:any=await rr.json();if(!rr.ok)throw new Error(rj.message||'Campanha salva, mas não foi possível gravar os destinatários.');
+   if(campaignForm.recipientMode!=='base'){
+    const external=recipients.map(x=>({user_id:session.user.id,name:x.name||'',phone:normalizePhone(x.phone||''),email:x.email||'',segment:x.segment||'',group_name:x.group_name||'',profile:x.profile||'',consent:true,source:x.source,tags:{campaign_id:created.id}}));
+    const cr=await fetch(SUPA+'/rest/v1/campaign_contacts',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(external)});
+    if(!cr.ok){const cj:any=await cr.json().catch(()=>({}));console.warn('Contato externo não persistido',cj)}
+   }
+   setCampaigns(x=>[created,...x]);setCampaignRecipients(x=>[...rj,...x]);setCampaignForm({name:'',channel:'WhatsApp',audience:'Todos',message:'',recipientMode:'base',manualName:'',manualPhone:'',manualConsent:false,segment:'Todos',phase:'Todas',risk:'Todos',listGroup:'Todos',listProfile:'Todos',template_name:'',template_language:'pt_BR'});setImportedContacts([]);setImportConsent(false);
+   setNotice('Campanha preparada com '+recipients.length+' destinatários. Agora você pode enviar quando o canal WhatsApp estiver conectado.');
   }catch(e){setError(e instanceof Error?e.message:'Falha ao salvar campanha.')}finally{setBusy(false)}
+ }
+ async function sendCampaign(ca:Campaign){
+  if(!session||demo)return;
+  setBusy(true);setError('');setNotice('');
+  try{
+   const r=await fetch(SUPA+'/functions/v1/send-whatsapp-campaign',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({campaign_id:ca.id})});
+   const j:any=await r.json().catch(()=>({}));
+   if(!r.ok)throw new Error(j.message||j.error||'Não foi possível enviar a campanha.');
+   setNotice('Envio concluído: '+(j.sent||0)+' enviados, '+(j.failed||0)+' com erro.');await load();
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao enviar campanha.')}finally{setBusy(false)}
  }
  function goBack(){if(selected){setSelected('');return}const target=previousView||'Início';setView(target);setPreviousView('Início');setMobile(false)}
 
