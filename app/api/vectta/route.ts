@@ -9,7 +9,12 @@ const DEMO_HASH='0a59b3d6bd44192b9b819d493dbd2d77050f1a8f0c5a5d60ac5f1febc05c3cf
 const enc=new TextEncoder();
 const hex=(b:ArrayBuffer)=>Array.from(new Uint8Array(b)).map(n=>n.toString(16).padStart(2,'0')).join('');
 const digest=async(s:string)=>hex(await crypto.subtle.digest('SHA-256',enc.encode(s)));
-async function password(s:string,salt:string){const k=await crypto.subtle.importKey('raw',enc.encode(s),'PBKDF2',false,['deriveBits']);return hex(await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode(salt),iterations:100000,hash:'SHA-256'},k,256));}
+const PASSWORD_ITERATIONS=600000;
+async function derivePassword(s:string,salt:string,iterations:number){const k=await crypto.subtle.importKey('raw',enc.encode(s),'PBKDF2',false,['deriveBits']);return hex(await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode(salt),iterations,hash:'SHA-256'},k,256));}
+const safeEqual=(a:string,b:string)=>{if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0;};
+async function hashPassword(value:string,salt:string){const derived=await derivePassword(value,salt,PASSWORD_ITERATIONS);return 'pbkdf2-sha256$'+PASSWORD_ITERATIONS+'$'+derived;}
+async function verifyPassword(value:string,stored:string,salt:string){const parts=stored.split('$');if(parts.length===3&&parts[0]==='pbkdf2-sha256'){const iterations=Number(parts[1]);if(!Number.isInteger(iterations)||iterations<100000||iterations>1000000)return false;return safeEqual(await derivePassword(value,salt,iterations),parts[2]);}return safeEqual(await derivePassword(value,salt,100000),stored);}
+function passwordIsAcceptable(value:string,email:string,name:string){if(value.length<14||value.length>128)return false;const lower=value.toLowerCase(),local=email.split('@')[0]?.toLowerCase()||'',person=name.trim().toLowerCase();if(local.length>=3&&lower.includes(local))return false;if(person.length>=3&&lower.includes(person))return false;if(/^(.)\1+$/.test(value))return false;return !['password','senha123','123456789','qwerty','vectta2026'].some(x=>lower.includes(x));}
 const reply=(value:unknown,status=200,cookie?:string)=>Response.json(value,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...(cookie?{'Set-Cookie':cookie}:{})}});
 const cookie=(token:string,req:Request,age: number | null=null)=>`nexora_session=${token}; Path=/; HttpOnly; SameSite=Strict${age===null?'':`; Max-Age=${age}`}${new URL(req.url).protocol==='https:'?'; Secure':''}`;
 function chatGPTIdentity(req:Request){const userId=req.headers.get('oai-authenticated-user-id')?.trim();const email=req.headers.get('oai-authenticated-user-email')?.trim().toLowerCase();if(!userId||!email)return null;let name=email.split('@')[0]||'Chai';const encoded=req.headers.get('oai-authenticated-user-full-name');if(encoded){try{name=decodeURIComponent(encoded).trim()||name;}catch{}}return {userId,email,name};}
@@ -32,18 +37,38 @@ if(b.action==='login'||b.action==='register'){
  if((attempt?.count||0)>20)return reply({error:'Muitas tentativas. Aguarde 15 minutos.'},429);
  const input=z.object({email:z.string().email().max(200),password:z.string().min(10).max(128),name:str.optional()}).parse(b);let workspace='',name='',demo=0;
  if(['demo@nexora.app','demo@vectta.app'].includes(input.email.toLowerCase())){
- if(b.action!=='login'||await password(input.password,'nexora-demo-v1')!==DEMO_HASH&&await password(input.password,'nexora-demo-v1')!=='05a2f9cecf185f44120a560c8a42393bee7d16c6d668033dec458009c700ddd6')return reply({error:'Usuário ou senha incorretos.'},401);
+ const demoPassword=await derivePassword(input.password,'nexora-demo-v1',100000);if(b.action!=='login'||demoPassword!==DEMO_HASH&&demoPassword!=='05a2f9cecf185f44120a560c8a42393bee7d16c6d668033dec458009c700ddd6')return reply({error:'Usuário ou senha incorretos.'},401);
  workspace=crypto.randomUUID();name='Visitante';demo=1;const seed=sample(workspace);const stmts: D1PreparedStatement[]=[];
  for(const p of seed.projects)stmts.push(db.prepare('INSERT INTO projects(id,workspace,client,segment,system,owner,phase,start,due,completed,scope,risk) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(p.id,workspace,p.client,p.segment,p.system,p.owner,p.phase,p.start,p.due,p.completed,p.scope,p.risk));
  for(const t of seed.tasks)stmts.push(db.prepare('INSERT INTO tasks(id,workspace,project,title,owner,due,done,critical,kind) VALUES(?,?,?,?,?,?,?,?,?)').bind(t.id,workspace,t.project,t.title,t.owner,t.due,t.done,t.critical,t.kind));
  for(let i=0;i<stmts.length;i+=80)await db.batch(stmts.slice(i,i+80));
  }else if(b.action==='register'){
  if(!input.name)return reply({error:'Informe seu nome.'},400);if(await db.prepare('SELECT id FROM users WHERE email=?').bind(input.email.toLowerCase()).first())return reply({error:'Não foi possível cadastrar esse e-mail. Tente entrar.'},409);
- const salt=crypto.randomUUID();workspace=crypto.randomUUID();name=input.name;await db.prepare('INSERT INTO users(id,email,name,password,salt,workspace) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),input.email.toLowerCase(),name,await password(input.password,salt),salt,workspace).run();
- }else{const u=await db.prepare('SELECT * FROM users WHERE email=?').bind(input.email.toLowerCase()).first<{password:string;salt:string;workspace:string;name:string}>();const hash=await password(input.password,u?.salt||'nonexistent');if(!u||u.password!==hash)return reply({error:'Usuário ou senha incorretos.'},401);workspace=u.workspace;name=u.name;}
+ const salt=crypto.randomUUID();workspace=crypto.randomUUID();name=input.name;if(!passwordIsAcceptable(input.password,input.email,name))return reply({error:'Use uma senha com pelo menos 14 caracteres, sem seu nome/e-mail e sem sequências comuns.'},400);await db.prepare('INSERT INTO users(id,email,name,password,salt,workspace) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),input.email.toLowerCase(),name,await hashPassword(input.password,salt),salt,workspace).run();
+ }else{
+const u=await db.prepare('SELECT * FROM users WHERE email=?').bind(input.email.toLowerCase()).first<{id:string;password:string;salt:string;workspace:string;name:string}>();
+if(!u||!await verifyPassword(input.password,u.password,u.salt))return reply({error:'Usuário ou senha incorretos.'},401);
+workspace=u.workspace;name=u.name;
+if(!u.password.startsWith('pbkdf2-sha256$')){const nextSalt=crypto.randomUUID();await db.prepare('UPDATE users SET password=?,salt=? WHERE id=?').bind(await hashPassword(input.password,nextSalt),nextSalt,u.id).run();}
+}
  const token=crypto.randomUUID()+crypto.randomUUID();await db.prepare('INSERT INTO sessions(token,workspace,name,demo,expires) VALUES(?,?,?,?,?)').bind(await digest(token),workspace,name,demo,Date.now()+28800000).run();return reply({ok:true,access:token},200,cookie(token,req));
 }
 const s=await session(req);if(!s)return reply({error:'Sua sessão terminou. Entre novamente.'},401);
+if(b.action==='password.change'){
+ const input=z.object({currentPassword:z.string().max(128).optional().default(''),newPassword:z.string().min(14).max(128)}).parse(b);
+ const user=await db.prepare('SELECT id,email,name,password,salt,workspace FROM users WHERE workspace=?').bind(s.workspace).first<{id:string;email:string;name:string;password:string;salt:string;workspace:string}>();
+ if(!user)return reply({error:'Conta não encontrada.'},404);
+ const identity=chatGPTIdentity(req),identityVerified=!!identity&&identity.email===user.email;
+ const bucket=await digest('password-change:'+(req.headers.get('cf-connecting-ip')||'local')+':'+Math.floor(Date.now()/900000));
+ const attempt=await db.prepare('INSERT INTO attempts(bucket,count) VALUES(?,1) ON CONFLICT(bucket) DO UPDATE SET count=count+1 RETURNING count').bind(bucket).first<{count:number}>();
+ if((attempt?.count||0)>10)return reply({error:'Muitas tentativas. Aguarde 15 minutos.'},429);
+ if(!identityVerified&&(!input.currentPassword||!await verifyPassword(input.currentPassword,user.password,user.salt)))return reply({error:'Senha atual incorreta.'},401);
+ if(!passwordIsAcceptable(input.newPassword,user.email,user.name))return reply({error:'Use uma senha com pelo menos 14 caracteres, sem seu nome/e-mail e sem sequências comuns.'},400);
+ if(await verifyPassword(input.newPassword,user.password,user.salt))return reply({error:'A nova senha precisa ser diferente da senha atual.'},400);
+ const salt=crypto.randomUUID(),next=await hashPassword(input.newPassword,salt);
+ await db.batch([db.prepare('UPDATE users SET password=?,salt=? WHERE id=?').bind(next,salt,user.id),db.prepare('DELETE FROM sessions WHERE workspace=?').bind(user.workspace)]);
+ return reply({ok:true,verifiedBy:identityVerified?'chatgpt':'current-password'},200,cookie('',req,0));
+}
 if(b.action==='logout'){await db.prepare('DELETE FROM sessions WHERE token=?').bind(s.token).run();return reply({ok:true},200,cookie('',req,0));}
 const audit=(project:string,message:string)=>db.prepare('INSERT INTO events(id,workspace,project,message,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),s.workspace,project,message,new Date().toISOString());
 if(b.action==='project.save'){
