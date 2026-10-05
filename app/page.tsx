@@ -115,6 +115,8 @@ export default function Page(){
  const [campaignForm,setCampaignForm]=useState({name:'',channel:'WhatsApp',audience:'Todos',message:'',recipientMode:'base',manualName:'',manualPhone:'',manualConsent:false,segment:'Todos',phase:'Todas',risk:'Todos',listGroup:'Todos',listProfile:'Todos',template_name:'',template_language:'pt_BR'});
  const [importedContacts,setImportedContacts]=useState<ImportContact[]>([]);
  const [importConsent,setImportConsent]=useState(false);
+ const [metaTest,setMetaTest]=useState({access_token:'',phone_number_id:'',graph_version:'',recipient_phone:''});
+ const [metaTestResult,setMetaTestResult]=useState('');
  const [profileForm,setProfileForm]=useState({full_name:'',workspace_name:'Carteira pessoal',phone:'',avatar_url:''});
 
  useEffect(()=>{const raw=localStorage.getItem('vectta.session');if(raw){try{setSession(JSON.parse(raw))}catch{}}},[]);
@@ -363,6 +365,19 @@ export default function Page(){
    setCampaigns(x=>[created,...x]);setCampaignRecipients(x=>[...rj,...x]);setCampaignForm({name:'',channel:'WhatsApp',audience:'Todos',message:'',recipientMode:'base',manualName:'',manualPhone:'',manualConsent:false,segment:'Todos',phase:'Todas',risk:'Todos',listGroup:'Todos',listProfile:'Todos',template_name:'',template_language:'pt_BR'});setImportedContacts([]);setImportConsent(false);
    setNotice('Campanha preparada com '+recipients.length+' destinatários. Agora você pode enviar quando o canal WhatsApp estiver conectado.');
   }catch(e){setError(e instanceof Error?e.message:'Falha ao salvar campanha.')}finally{setBusy(false)}
+ }
+ async function sendMetaTest(){
+  if(!metaTest.access_token.trim()||!metaTest.phone_number_id.trim()||!metaTest.graph_version.trim()||!metaTest.recipient_phone.trim()){
+   setError('Preencha os quatro campos do ambiente de teste da Meta.');return;
+  }
+  setBusy(true);setError('');setNotice('');setMetaTestResult('');
+  try{
+   const r=await fetch('/api/whatsapp-test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(metaTest)});
+   const j:any=await r.json().catch(()=>({}));
+   if(!r.ok)throw new Error(j.message||'Não foi possível enviar a mensagem de teste.');
+   setMetaTestResult('Mensagem de teste enviada. ID: '+(j.message_id||'confirmado pela Meta'));
+   setNotice('A Meta aceitou o envio para '+(j.recipient||metaTest.recipient_phone)+'. Confira seu WhatsApp.');
+  }catch(e){setError(e instanceof Error?e.message:'Falha no teste da Meta.')}finally{setBusy(false)}
  }
  async function sendCampaign(ca:Campaign){
   if(!session||demo)return;
