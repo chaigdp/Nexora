@@ -219,7 +219,7 @@ export default function Page(){
   }
   const unique=[...new Set(actions)].slice(0,5);
   return{
-   level,signals,latest,
+   level,signals,latest,actions:unique,
    owner:level==='Insatisfeito'?p.owner+' + liderança/sponsor':p.owner,
    sla:level==='Insatisfeito'?'Primeira resposta: mesmo dia · plano: até 24h':level==='Atenção'?'Checkpoint: até 1 dia útil':'Próximo marco planejado',
    cadence:level==='Insatisfeito'?'Atualização diária até estabilizar':level==='Atenção'?'Atualização semanal':'Cadência normal',
