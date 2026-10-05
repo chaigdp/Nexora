@@ -3,7 +3,7 @@ import {useEffect,useMemo,useState} from 'react';
 import {
   LayoutDashboard,Layers3,ListTodo,ChartNoAxesCombined,ShieldCheck,BookOpen,AlertTriangle,
   CalendarDays,ClipboardCheck,TestTube2,Headphones,Workflow,Settings2,Plug,WalletCards,
-  Plus,Search,ChevronRight,Check,Clock3,Menu,LogOut,X,KeyRound
+  Plus,Search,ChevronRight,Check,Clock3,Menu,LogOut,X,KeyRound,ArrowLeft,UserRound,MessageSquare,Send,Camera,Phone,Route,BarChart3,RefreshCw
 } from 'lucide-react';
 import s from './vectta.module.css';
 
@@ -14,15 +14,31 @@ const MASCOT='https://588b1eb0-7217-4ce5-a0c1-281504d2838d.sandbox.floot.app/_cd
 const CHAI='https://588b1eb0-7217-4ce5-a0c1-281504d2838d.sandbox.floot.app/_cdn/static/f9508fc8-d95a-4d32-a012-7ee04104da7d-chai-logo-official.png';
 
 type Risk='Baixo'|'Médio'|'Alto';
-type Project={id:string;client:string;segment:string;system:string;owner:string;phase:string;start_date:string|null;due_date:string|null;scope:string;manual_risk_level:Risk;metadata:any};
+type Project={id:string;client:string;segment:string;system:string;owner:string;phase:string;start_date:string|null;due_date:string|null;completed_date?:string|null;scope:string;manual_risk_level:Risk;metadata:any;cnpj?:string;contact_name?:string;contact_email?:string;contact_phone?:string;message_opt_in?:boolean;preferred_channel?:string};
 type Task={id:string;project_id:string;title:string;owner:string;due_date:string|null;done:boolean;critical:boolean;kind:string;priority:string;blocked:boolean;detail:any};
 type Op={id:string;project_id:string;kind:string;title:string;owner:string;due_date:string|null;status:string;priority:string;detail:string;evidence:string;strategy:string;progress:number};
 type Session={access_token:string;refresh_token?:string;user:{id:string;email?:string;user_metadata?:any}};
+type Profile={id:string;full_name:string;workspace_name:string;phone?:string;avatar_url?:string};
+type Feedback={id:string;project_id:string;contact_name:string;contact_role:string;channel:string;csat:number|null;nps:number|null;ces:number|null;comment:string;created_at:string};
+type Campaign={id:string;name:string;channel:string;message:string;audience:string;status:string;target_filter:any;scheduled_at:string|null;created_at:string};
 
-const phases=['Descoberta','Configuração','Migração','Testes','Treinamento','Entrada em operação','Acompanhamento','Concluída'];
+const phases=['Descoberta','Planejamento e desenho','Configuração','Integrações','Migração','Testes','Treinamento','Prontidão e cutover','Entrada em operação','Acompanhamento','Concluída'];
+const trailStages=[
+ {phase:'Descoberta',title:'Descoberta',desc:'Objetivos, processos, escopo, stakeholders e critérios de sucesso.'},
+ {phase:'Planejamento e desenho',title:'Planejamento',desc:'Plano, arquitetura, responsabilidades, cronograma e desenho da solução.'},
+ {phase:'Configuração',title:'Configuração',desc:'Parametrização, construção, regras, segurança e preparação do ambiente.'},
+ {phase:'Integrações',title:'Integrações',desc:'Conexões com sistemas externos, APIs, dependências e cenários de falha.'},
+ {phase:'Migração',title:'Migração de dados',desc:'Limpeza, carga, reconciliação e validações com dados reais.'},
+ {phase:'Testes',title:'Testes e UAT',desc:'Testes funcionais, integrados, performance e aceite dos usuários.'},
+ {phase:'Treinamento',title:'Treinamento',desc:'Capacitação, comunicação, materiais e preparação para mudança.'},
+ {phase:'Prontidão e cutover',title:'Prontidão e cutover',desc:'Checklist de go-live, plano de virada, contingência e aprovações.'},
+ {phase:'Entrada em operação',title:'Go-live',desc:'Entrada em produção, validação do negócio e monitoramento intensivo.'},
+ {phase:'Acompanhamento',title:'Hypercare',desc:'Estabilização, suporte reforçado, adoção e transferência para operação.'},
+ {phase:'Concluída',title:'Evolução contínua',desc:'Encerramento formal, lições aprendidas, ganhos e próximos ciclos.'}
+];
 const nav=[
 ['Início',LayoutDashboard],['Visão geral',ChartNoAxesCombined],['Implantações',Layers3],['Pendências',ListTodo],
-['Resultados',WalletCards],['Segurança',ShieldCheck],['Guia de uso',BookOpen],['Riscos e estratégias',AlertTriangle],
+['Resultados',WalletCards],['Relatórios e dados',BarChart3],['Feedbacks',MessageSquare],['Campanhas',Send],['Segurança',ShieldCheck],['Guia de uso',BookOpen],['Riscos e estratégias',AlertTriangle],
 ['Cronograma',CalendarDays],['Requisitos',ClipboardCheck],['Testes',TestTube2],['Chamados',Headphones],
 ['Processos',Workflow],['Manual ERP',Settings2],['Entrada em operação',Check],['Integrações',Plug],['Rentabilidade',WalletCards]
 ] as const;
@@ -56,7 +72,11 @@ export default function Page(){
  const [projects,setProjects]=useState<Project[]>([]);
  const [tasks,setTasks]=useState<Task[]>([]);
  const [ops,setOps]=useState<Op[]>([]);
+ const [feedbacks,setFeedbacks]=useState<Feedback[]>([]);
+ const [campaigns,setCampaigns]=useState<Campaign[]>([]);
+ const [profile,setProfile]=useState<Profile|null>(null);
  const [view,setView]=useState('Início');
+ const [previousView,setPreviousView]=useState('Início');
  const [selected,setSelected]=useState('');
  const [query,setQuery]=useState('');
  const [phase,setPhase]=useState('Todas');
@@ -70,11 +90,19 @@ export default function Page(){
  const [name,setName]=useState('');
  const [busy,setBusy]=useState(false);
  const [modal,setModal]=useState(false);
+ const [showTrail,setShowTrail]=useState(false);
+ const [trailFocus,setTrailFocus]=useState('');
  const [overviewRisk,setOverviewRisk]=useState<'Todos'|'Alto'|'Médio'|'Baixo'>('Todos');
- const [form,setForm]=useState({client:'',segment:'',system:'',owner:'Chai',phase:'Descoberta',due:'',scope:'',revenue:'0'});
+ const [form,setForm]=useState({client:'',segment:'',system:'',owner:'Chai',phase:'Descoberta',due:'',scope:'',revenue:'0',cnpj:'',contact_name:'',contact_email:'',contact_phone:'',message_opt_in:false,preferred_channel:'WhatsApp'});
+ const [feedbackForm,setFeedbackForm]=useState({project_id:'',contact_name:'',contact_role:'',channel:'Reunião',csat:'5',nps:'10',ces:'6',comment:''});
+ const [campaignForm,setCampaignForm]=useState({name:'',channel:'WhatsApp',audience:'Todos',message:''});
+ const [profileForm,setProfileForm]=useState({full_name:'',workspace_name:'Carteira pessoal',phone:'',avatar_url:''});
 
  useEffect(()=>{const raw=localStorage.getItem('vectta.session');if(raw){try{setSession(JSON.parse(raw))}catch{}}},[]);
  useEffect(()=>{if(session&&!demo)void load()},[session,demo]);
+ useEffect(()=>{if(!session||demo)return;const id=setInterval(()=>void load(),30000);return()=>clearInterval(id)},[session?.access_token,demo]);
+ useEffect(()=>{setShowTrail(false);setTrailFocus('')},[selected]);
+ useEffect(()=>{if(typeof window==='undefined')return;const h=new URLSearchParams(window.location.hash.slice(1));const access=h.get('access_token'),refresh=h.get('refresh_token');if(!access)return;fetch(SUPA+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+access}}).then(r=>r.json()).then(user=>{if(user?.id){const next={access_token:access,refresh_token:refresh||undefined,user};setSession(next);localStorage.setItem('vectta.session',JSON.stringify(next));history.replaceState(null,'',location.pathname+location.search)}}).catch(()=>{})},[]);
 
  async function auth(path:string,body:any){
   const r=await fetch(SUPA+'/auth/v1/'+path,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -87,8 +115,8 @@ export default function Page(){
  async function load(){
   if(!session)return;
   try{
-   const [p,t,o]=await Promise.all([api('projects',session.access_token),api('tasks',session.access_token),api('operations',session.access_token)]);
-   setProjects(p);setTasks(t);setOps(o);
+   const [p,t,o,fb,ca,pr]=await Promise.all([api('projects',session.access_token),api('tasks',session.access_token),api('operations',session.access_token),api('feedbacks',session.access_token),api('campaigns',session.access_token),api('profiles',session.access_token)]);
+   setProjects(p);setTasks(t);setOps(o);setFeedbacks(fb);setCampaigns(ca);const own=pr[0]||null;setProfile(own);if(own)setProfileForm({full_name:own.full_name||'',workspace_name:own.workspace_name||'Carteira pessoal',phone:own.phone||'',avatar_url:own.avatar_url||''});
   }catch(e){setError(e instanceof Error?e.message:'Falha ao carregar.')}
  }
  async function submitAuth(){
@@ -105,7 +133,7 @@ export default function Page(){
    }
   }catch(e){setError(e instanceof Error?e.message:'Falha na autenticação.')}finally{setBusy(false)}
  }
- function logout(){localStorage.removeItem('vectta.session');setSession(null);setDemo(false);setProjects([]);setTasks([]);setOps([])}
+ function logout(){localStorage.removeItem('vectta.session');setSession(null);setDemo(false);setProjects([]);setTasks([]);setOps([]);setFeedbacks([]);setCampaigns([]);setProfile(null)}
  function enterDemo(){setDemo(true);setSession({access_token:'demo',user:{id:'demo',email:'demo@vectta.local',user_metadata:{full_name:'Chai'}}});setProjects(demos);setTasks(demoTasks);setOps(demoOps)}
  const current=projects.find(p=>p.id===selected);
  const active=projects.filter(p=>p.phase!=='Concluída');
@@ -113,8 +141,8 @@ export default function Page(){
  const progress=(p:Project)=>{const list=tasks.filter(t=>t.project_id===p.id&&t.kind==='Entrega');return list.length?Math.round(list.filter(t=>t.done).length/list.length*100):0};
  const risk=(p:Project):{level:Risk;causes:string[]}=>{const causes:string[]=[];const pt=tasks.filter(t=>t.project_id===p.id&&!t.done);const po=ops.filter(o=>o.project_id===p.id);if(p.due_date&&p.due_date<today()&&p.phase!=='Concluída')causes.push('Prazo da implantação vencido.');if(pt.some(t=>t.blocked&&t.critical))causes.push('Entrega crítica bloqueada.');else if(pt.some(t=>t.blocked))causes.push('Entrega bloqueada.');if(pt.some(t=>t.critical&&t.due_date&&t.due_date<today()))causes.push('Entrega crítica atrasada.');if(po.some(o=>o.kind==='Teste'&&o.status==='Reprovado'))causes.push('Teste reprovado.');const level:Risk=p.manual_risk_level==='Alto'||causes.some(c=>/crítica|vencido|reprovado/i.test(c))?'Alto':p.manual_risk_level==='Médio'||causes.length?'Médio':'Baixo';return{level,causes}};
  const high=projects.filter(p=>risk(p).level==='Alto').length;
- const filtered=useMemo(()=>projects.filter(p=>(phase==='Todas'||p.phase===phase)&&[p.client,p.system,p.segment].join(' ').toLowerCase().includes(query.toLowerCase())),[projects,phase,query]);
- const displayName=demo?'Chai':session?.user.user_metadata?.full_name||session?.user.email?.split('@')[0]||'Chai';
+ const filtered=useMemo(()=>projects.filter(p=>(phase==='Todas'||p.phase===phase)&&[p.client,p.system,p.segment,p.cnpj,p.contact_name,p.contact_email,p.contact_phone].filter(Boolean).join(' ').toLowerCase().includes(query.toLowerCase())),[projects,phase,query]);
+ const displayName=demo?'Chai':profile?.full_name||session?.user.user_metadata?.full_name||session?.user.email?.split('@')[0]||'Chai';
  const avgProgress=projects.length?Math.round(projects.reduce((sum,p)=>sum+progress(p),0)/projects.length):0;
  const criticalOpen=pending.filter(t=>t.critical).length;
  const blockedOpen=pending.filter(t=>t.blocked).length;
@@ -136,6 +164,73 @@ export default function Page(){
  const phaseOverview=phases.map(name=>({name,count:projects.filter(p=>p.phase===name).length}));
  const maxPhase=Math.max(1,...phaseOverview.map(x=>x.count));
  const deadlineLabel=(d:number|null)=>d===null?'Sem prazo':d<0?Math.abs(d)+'d atrasado':d===0?'Hoje':d===1?'Amanhã':'em '+d+' dias';
+ const testOps=ops.filter(o=>o.kind==='Teste');
+ const uatRate=testOps.length?Math.round(testOps.filter(o=>o.status==='Aprovado'||o.status==='Concluído').length/testOps.length*100):0;
+ const scheduleHealth=active.length?Math.round(active.filter(p=>!p.due_date||p.due_date>=today()).length/active.length*100):100;
+ const avgImplDays=projects.length?Math.round(projects.reduce((sum,p)=>{if(!p.start_date)return sum;const end=p.completed_date||today();return sum+Math.max(0,Math.round((new Date(end+'T12:00:00').getTime()-new Date(p.start_date+'T12:00:00').getTime())/86400000))},0)/projects.length):0;
+ const scoredCsat=feedbacks.filter(f=>f.csat!==null),scoredNps=feedbacks.filter(f=>f.nps!==null),scoredCes=feedbacks.filter(f=>f.ces!==null);
+ const avgCsat=scoredCsat.length?(scoredCsat.reduce((a,f)=>a+(f.csat||0),0)/scoredCsat.length).toFixed(1):'—';
+ const avgCes=scoredCes.length?(scoredCes.reduce((a,f)=>a+(f.ces||0),0)/scoredCes.length).toFixed(1):'—';
+ const npsScore=scoredNps.length?Math.round(((scoredNps.filter(f=>(f.nps||0)>=9).length-scoredNps.filter(f=>(f.nps||0)<=6).length)/scoredNps.length)*100):0;
+ const eligibleCampaignProjects=projects.filter(p=>p.message_opt_in&&(p.contact_phone||p.contact_email));
+ const campaignTargets=eligibleCampaignProjects.filter(p=>campaignForm.audience==='Todos'||campaignForm.audience==='Ativos'&&p.phase!=='Concluída'||campaignForm.audience==='Em risco'&&risk(p).level!=='Baixo'||campaignForm.audience==='Pós-go-live'&&['Entrada em operação','Acompanhamento','Concluída'].includes(p.phase));
+
+ async function sendAccessLink(){
+  if(!email.trim()){setError('Informe seu e-mail.');return}
+  setBusy(true);setError('');setNotice('');
+  try{
+   const r=await fetch(SUPA+'/auth/v1/otp?redirect_to='+encodeURIComponent(location.origin),{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({email:email.trim(),create_user:false})});
+   const j:any=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.msg||j.message||'Não foi possível enviar o acesso.');
+   setNotice('Enviamos um acesso de uso único para seu e-mail. Você pode entrar sem lembrar a senha.');
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao enviar acesso.')}finally{setBusy(false)}
+ }
+ async function saveProfile(){
+  if(!session||demo)return;
+  setBusy(true);setError('');
+  try{
+   const r=await fetch(SUPA+'/rest/v1/profiles?id=eq.'+session.user.id,{method:'PATCH',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(profileForm)});
+   const j:any=await r.json();if(!r.ok)throw new Error(j.message||'Não foi possível salvar o perfil.');setProfile(j[0]||profile);setNotice('Perfil atualizado.');
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao salvar perfil.')}finally{setBusy(false)}
+ }
+ async function uploadAvatar(file:File){
+  if(!session||demo)return;
+  if(file.size>2097152){setError('A foto deve ter no máximo 2 MB.');return}
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)){setError('Use JPG, PNG ou WebP.');return}
+  setBusy(true);setError('');
+  try{
+   const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
+   const path=session.user.id+'/avatar.'+ext;
+   const r=await fetch(SUPA+'/storage/v1/object/vectta-avatars/'+path,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':file.type,'x-upsert':'true'},body:file});
+   if(!r.ok){const j:any=await r.json().catch(()=>({}));throw new Error(j.message||'Não foi possível enviar a foto.')}
+   const avatar_url=SUPA+'/storage/v1/object/public/vectta-avatars/'+path+'?v='+Date.now();
+   setProfileForm(x=>({...x,avatar_url}));
+   const pr=await fetch(SUPA+'/rest/v1/profiles?id=eq.'+session.user.id,{method:'PATCH',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({avatar_url})});
+   const pj:any=await pr.json();if(!pr.ok)throw new Error(pj.message||'Foto enviada, mas não foi possível atualizar o perfil.');setProfile(pj[0]||profile);setNotice('Foto atualizada.');
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao enviar foto.')}finally{setBusy(false)}
+ }
+ async function saveFeedback(){
+  if(!feedbackForm.project_id||!feedbackForm.comment.trim()){setError('Escolha a implantação e escreva o feedback.');return}
+  if(demo){setNotice('Na demonstração, o feedback não é persistido.');return}
+  if(!session)return;
+  setBusy(true);setError('');
+  try{
+   const body={user_id:session.user.id,project_id:feedbackForm.project_id,contact_name:feedbackForm.contact_name,contact_role:feedbackForm.contact_role,channel:feedbackForm.channel,csat:Number(feedbackForm.csat),nps:Number(feedbackForm.nps),ces:Number(feedbackForm.ces),comment:feedbackForm.comment};
+   const r=await fetch(SUPA+'/rest/v1/feedbacks',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(body)});
+   const j:any=await r.json();if(!r.ok)throw new Error(j.message||'Não foi possível salvar o feedback.');setFeedbacks(x=>[j[0],...x]);setFeedbackForm(x=>({...x,contact_name:'',contact_role:'',comment:''}));setNotice('Feedback registrado.');
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao salvar feedback.')}finally{setBusy(false)}
+ }
+ async function saveCampaign(){
+  if(!campaignForm.name.trim()||!campaignForm.message.trim()){setError('Dê um nome à campanha e escreva a mensagem.');return}
+  if(demo){setNotice('Na demonstração, a campanha não é persistida.');return}
+  if(!session)return;
+  setBusy(true);setError('');
+  try{
+   const body={user_id:session.user.id,name:campaignForm.name,channel:campaignForm.channel,message:campaignForm.message,audience:campaignForm.audience,status:'Pronta para integração',target_filter:{consentRequired:true,targetCount:campaignTargets.length}};
+   const r=await fetch(SUPA+'/rest/v1/campaigns',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(body)});
+   const j:any=await r.json();if(!r.ok)throw new Error(j.message||'Não foi possível preparar a campanha.');setCampaigns(x=>[j[0],...x]);setCampaignForm({name:'',channel:'WhatsApp',audience:'Todos',message:''});setNotice('Campanha preparada. O envio real depende da integração do canal e só considera contatos com consentimento.');
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao salvar campanha.')}finally{setBusy(false)}
+ }
+ function goBack(){if(selected){setSelected('');return}const target=previousView||'Início';setView(target);setPreviousView('Início');setMobile(false)}
 
  async function createProject(){
   if(!form.client.trim())return;
@@ -143,10 +238,10 @@ export default function Page(){
   if(!session)return;
   setBusy(true);
   try{
-   const body={user_id:session.user.id,client:form.client,segment:form.segment,system:form.system,owner:form.owner,phase:form.phase,start_date:today(),due_date:form.due||null,scope:form.scope,manual_risk_level:'Baixo',metadata:{revenue:Number(form.revenue||0)}};
+   const body={user_id:session.user.id,client:form.client,segment:form.segment,system:form.system,owner:form.owner,phase:form.phase,start_date:today(),due_date:form.due||null,scope:form.scope,manual_risk_level:'Baixo',metadata:{revenue:Number(form.revenue||0)},cnpj:form.cnpj,contact_name:form.contact_name,contact_email:form.contact_email,contact_phone:form.contact_phone,message_opt_in:form.message_opt_in,preferred_channel:form.preferred_channel};
    const r=await fetch(SUPA+'/rest/v1/projects',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(body)});
    if(!r.ok){const j:any=await r.json();throw new Error(j.message||'Falha ao salvar.');}
-   setModal(false);setForm({client:'',segment:'',system:'',owner:'Chai',phase:'Descoberta',due:'',scope:'',revenue:'0'});await load();setNotice('Implantação criada.');
+   setModal(false);setForm({client:'',segment:'',system:'',owner:'Chai',phase:'Descoberta',due:'',scope:'',revenue:'0',cnpj:'',contact_name:'',contact_email:'',contact_phone:'',message_opt_in:false,preferred_channel:'WhatsApp'});await load();setNotice('Implantação criada.');
   }catch(e){setError(e instanceof Error?e.message:'Falha ao salvar.')}finally{setBusy(false)}
  }
  async function toggleTask(t:Task){
@@ -155,7 +250,7 @@ export default function Page(){
   const r=await fetch(SUPA+'/rest/v1/tasks?id=eq.'+t.id,{method:'PATCH',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({done:!t.done})});
   if(!r.ok){setError('Não foi possível atualizar a entrega.');return}await load();
  }
- function changeView(v:string){setView(v);setSelected('');setMobile(false);setError('');}
+ function changeView(v:string){setPreviousView(view);setView(v);setSelected('');setMobile(false);setError('');}
  function table(rows:Project[]){return <div className={s.tableWrap}><table><thead><tr><th>Cliente / sistema</th><th>Etapa</th><th>Progresso</th><th>Prazo</th><th>Risco</th><th/></tr></thead><tbody>{rows.map(p=>{const r=risk(p);return <tr key={p.id}><td><button className={s.client} onClick={()=>setSelected(p.id)}>{p.client}</button><span>{p.system} · {p.segment}</span></td><td><span className={s.badge}>{p.phase}</span></td><td>{progress(p)}%<div className={s.progress}><i style={{width:progress(p)+'%'}}/></div></td><td>{fmt(p.due_date)}</td><td><span className={s.badge+' '+badge(r.level)}>{r.level}</span></td><td><button className={s.btn+' '+s.ghost} onClick={()=>setSelected(p.id)}><ChevronRight size={16}/></button></td></tr>})}</tbody></table>{!rows.length&&<div className={s.empty}>Nenhuma implantação encontrada.</div>}</div>}
 
  if(!session&&!demo)return <div className={s.auth}>
@@ -164,7 +259,7 @@ export default function Page(){
    <div className={s.authCopy}><h1>Implante confiança.<br/><em>Entregue evolução.</em></h1><p>Gestão de implementações e experiência do cliente,<br/>da descoberta ao pós-go-live.</p></div>
    <img className={s.authMascot} src={MASCOT} alt="Mascote chAI"/>
   </section>
-  <section className={s.authPanel}><form className={s.authCard} onSubmit={(e)=>{e.preventDefault();void submitAuth();}}><div className={s.brandRow}><img className={s.vt} src={VT} alt="VT"/><div className={s.brandName}>Vectta</div></div>{error&&<div className={s.error}>{error}</div>}{notice&&<div className={s.notice}>{notice}</div>}<div><h2>{mode==='login'?'Entrar':mode==='register'?'Criar conta':'Recuperar acesso'}</h2><p>Sua carteira é privada e isolada por usuário.</p></div>{mode==='register'&&<label>Nome<input className={s.input} value={name} onChange={e=>setName(e.target.value)}/></label>}<label>E-mail<input className={s.input} type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>{mode!=='forgot'&&<label>Senha<input className={s.input} type="password" value={password} minLength={12} onChange={e=>setPassword(e.target.value)}/></label>}<button type="submit" className={s.btn+' '+s.primary} disabled={busy}><ShieldCheck size={16}/>{mode==='login'?'Entrar':mode==='register'?'Criar conta':'Enviar link'}</button><div className={s.authLinks}><button type="button" className={s.link} onClick={()=>setMode(mode==='register'?'login':'register')}>{mode==='register'?'Já tenho conta':'Criar conta'}</button>{mode!=='forgot'?<button type="button" className={s.link} onClick={()=>setMode('forgot')}>Esqueci minha senha</button>:<button type="button" className={s.link} onClick={()=>setMode('login')}>Voltar</button>}</div><button type="button" className={s.btn} onClick={enterDemo}>Explorar demonstração</button></form><img className={s.authChaiCorner} src={CHAI} alt="chAI · Conversas que movem, relações que ficam"/></section>
+  <section className={s.authPanel}><form className={s.authCard} onSubmit={(e)=>{e.preventDefault();void submitAuth();}}><div className={s.brandRow}><img className={s.vt} src={VT} alt="VT"/><div className={s.brandName}>Vectta</div></div>{error&&<div className={s.error}>{error}</div>}{notice&&<div className={s.notice}>{notice}</div>}<div><h2>{mode==='login'?'Entrar':mode==='register'?'Criar conta':'Recuperar acesso'}</h2><p>Sua carteira é privada e isolada por usuário.</p></div>{mode==='register'&&<label>Nome<input className={s.input} value={name} onChange={e=>setName(e.target.value)}/></label>}<label>E-mail<input className={s.input} type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>{mode!=='forgot'&&<label>Senha<input className={s.input} type="password" value={password} minLength={12} onChange={e=>setPassword(e.target.value)}/></label>}<button type="submit" className={s.btn+' '+s.primary} disabled={busy}><ShieldCheck size={16}/>{mode==='login'?'Entrar':mode==='register'?'Criar conta':'Enviar link'}</button>{mode==='login'&&<button type="button" className={s.btn} disabled={busy} onClick={sendAccessLink}><KeyRound size={16}/> Entrar sem senha</button>}<div className={s.authLinks}><button type="button" className={s.link} onClick={()=>setMode(mode==='register'?'login':'register')}>{mode==='register'?'Já tenho conta':'Criar conta'}</button>{mode!=='forgot'?<button type="button" className={s.link} onClick={()=>setMode('forgot')}>Esqueci minha senha</button>:<button type="button" className={s.link} onClick={()=>setMode('login')}>Voltar</button>}</div><button type="button" className={s.btn} onClick={enterDemo}>Explorar demonstração</button></form><img className={s.authChaiCorner} src={CHAI} alt="chAI · Conversas que movem, relações que ficam"/></section>
  </div>;
 
  let body:any;
