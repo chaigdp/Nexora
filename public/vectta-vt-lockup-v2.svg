@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 64" role="img" aria-label="Vectta">
+<defs>
+  <linearGradient id="g" x1="4" y1="6" x2="60" y2="58" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#14D8FF"/><stop offset=".26" stop-color="#2D5BFF"/><stop offset=".5" stop-color="#6A2BFF"/><stop offset=".72" stop-color="#B21CF2"/><stop offset=".92" stop-color="#FF2E9A"/>
+  </linearGradient>
+</defs>
+<rect x="3" y="4" width="56" height="56" rx="16" fill="url(#g)" stroke="#FFFFFF" stroke-width="1.8"/>
+<path d="M6 39 C18 19 39 10 56 10" fill="none" stroke="#FFFFFF" stroke-opacity=".18" stroke-width="1"/>
+<text x="31" y="39" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="25" font-weight="800" letter-spacing="-2" fill="#FFFFFF">VT</text>
+<rect x="16" y="48" width="12" height="3" rx="1.5" fill="#FF4FD8"/><rect x="34" y="48" width="12" height="3" rx="1.5" fill="#22E4FF"/>
+<text x="74" y="33" font-family="Arial,Helvetica,sans-serif" font-size="25" font-weight="700" fill="#FFFFFF">Vectta</text>
+<text x="75" y="49" font-family="Arial,Helvetica,sans-serif" font-size="8.5" font-weight="700" letter-spacing="1.7" fill="#9AA4D6">IMPLEMENTAÇÃO</text>
+</svg>
