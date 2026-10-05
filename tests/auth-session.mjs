@@ -23,7 +23,7 @@ globalThis.__testDb={
 const {GET,POST}=await import(pathToFileURL(resolve(out,'route.mjs')).href);
 const base='https://test.nexora.invalid';
 const client=()=>({cookie:'',access:''});
-async function call(c,data=null,status=200,proof=true){const req=new Request(base+'/api/nexora',{method:data?'POST':'GET',headers:{Origin:base,'Content-Type':'application/json',cookie:c.cookie,...(proof?{'X-Vectta-Access':c.access}:{})},...(data?{body:JSON.stringify(data)}:{})});const r=await(data?POST(req):GET(req));const result=await r.json();assert.equal(r.status,status,JSON.stringify(result));const cookie=r.headers.get('set-cookie');if(cookie){c.cookie=cookie.split(';')[0];if(data?.action==='login'||data?.action==='register')assert(!cookie.includes('Max-Age='),'Não deve persistir cookie de acesso');}if(result.access)c.access=result.access;return result;}
+async function call(c,data=null,status=200,proof=true,extraHeaders={}){const req=new Request(base+'/api/nexora',{method:data?'POST':'GET',headers:{Origin:base,'Content-Type':'application/json',cookie:c.cookie,...(proof?{'X-Vectta-Access':c.access}:{}),...extraHeaders},...(data?{body:JSON.stringify(data)}:{})});const r=await(data?POST(req):GET(req));const result=await r.json();assert.equal(r.status,status,JSON.stringify(result));const cookie=r.headers.get('set-cookie');if(cookie){c.cookie=cookie.split(';')[0];if(data?.action==='login'||data?.action==='register')assert(!cookie.includes('Max-Age='),'Não deve persistir cookie de acesso');}if(result.access)c.access=result.access;return result;}
 const a=client(),b=client();await call(a,null,401);
 await call(a,{action:'login',email:'demo@nexora.app',password:'WrongPassword2026'},401);
 for(const c of [a,b])await call(c,{action:'login',email:'demo@nexora.app',password:'VecttaDemo2026!'});
@@ -34,6 +34,19 @@ const personal=client(),email='analista@example.com';await call(personal,{action
 const draft={client:'Minha implantação',segment:'Varejo',system:'ERP',owner:'Analista',phase:'Descoberta',start:'2026-09-01',due:'2026-10-30',completed:'',scope:'Escopo de teste',risk:'Baixo'};await call(personal,{action:'project.save',project:draft});
 const sameCookie={cookie:personal.cookie,access:''};await call(sameCookie,null,401);
 await call(personal,{action:'logout'});await call(personal,null,401);await call(personal,{action:'login',email,password:'PersonalTest2026!'});assert.equal((await call(personal)).projects.length,1);
+// Password reset: senha atual obrigatória fora da identidade ChatGPT, nova senha forte e sessões anteriores invalidadas.
+await call(personal,{action:'password.change',currentPassword:'senha-errada',newPassword:'NovaSenhaSegura#2026'},401);
+await call(personal,{action:'password.change',currentPassword:'PersonalTest2026!',newPassword:'curta123'},400);
+await call(personal,{action:'password.change',currentPassword:'PersonalTest2026!',newPassword:'NovaSenhaSegura#2026'});
+await call(personal,null,401);
+await call(personal,{action:'login',email,password:'PersonalTest2026!'},401);
+await call(personal,{action:'login',email,password:'NovaSenhaSegura#2026'});
+assert.equal((await call(personal)).projects.length,1,'Troca de senha não pode perder a carteira');
+// Identidade autenticada do ChatGPT pode redefinir sem saber a senha antiga, mas somente para o mesmo e-mail.
+const identityHeaders={'oai-authenticated-user-id':'test-user-1','oai-authenticated-user-email':email,'oai-authenticated-user-full-name':encodeURIComponent('Analista')};
+const trusted=client();await call(trusted,{action:'password.change',newPassword:'OutraSenhaSegura#2026'},200,true,identityHeaders);
+await call(personal,{action:'login',email,password:'NovaSenhaSegura#2026'},401);
+await call(personal,{action:'login',email,password:'OutraSenhaSegura#2026'});
 // Operational flows, evidence, tenant isolation and transactional imports.
 const own=(await call(personal)).projects[0];
 const rec={project:own.id,kind:'Teste',title:'Validar estoque',owner:'Analista',due:'2026-10-10',status:'Aprovado',priority:'Alta',detail:'Entrada e baixa de estoque',evidence:'',strategy:'',dependency:'',progress:100};
@@ -65,5 +78,5 @@ await call(personal,{action:'logout'});await call(personal,{action:'login',email
 const {assess}=await import(pathToFileURL(resolve(out,'operations.mjs')).href);
 const risk=assess({...own,due:'2026-09-01'},[{...first,done:0,blocked:1}],[], '2026-09-30');assert.equal(risk.level,'Alto');assert(risk.causes.every(c=>c.reason&&c.action&&c.exit));
 console.log('PASS: módulos, evidência, prontidão, importação atômica, duplicidade, fila, dependência circular, isolamento e persistência.');
-console.log('PASS: credenciais obrigatórias, cookie sem entrada automática, leitura e escrita sem prova recusadas, dados pessoais preservados, logout e demonstrações isoladas.');
+console.log('PASS: credenciais obrigatórias, redefinição segura de senha, invalidação de sessões, identidade autenticada, leitura e escrita sem prova recusadas, dados pessoais preservados, logout e demonstrações isoladas.');
 db.close();
