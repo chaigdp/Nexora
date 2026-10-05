@@ -201,19 +201,25 @@ export default function Page(){
   }catch(e){setError(e instanceof Error?e.message:'Falha ao salvar perfil.')}finally{setBusy(false)}
  }
  async function uploadAvatar(file:File){
-  if(!session||demo)return;
+  if(!session)return;
+  if(demo){setError('A foto não pode ser alterada no modo demonstração. Entre na sua conta para salvar o perfil.');return}
   if(file.size>2097152){setError('A foto deve ter no máximo 2 MB.');return}
   if(!['image/jpeg','image/png','image/webp'].includes(file.type)){setError('Use JPG, PNG ou WebP.');return}
-  setBusy(true);setError('');
+  setBusy(true);setError('');setNotice('');
   try{
    const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
-   const path=session.user.id+'/avatar.'+ext;
-   const r=await fetch(SUPA+'/storage/v1/object/vectta-avatars/'+path,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':file.type,'x-upsert':'true'},body:file});
-   if(!r.ok){const j:any=await r.json().catch(()=>({}));throw new Error(j.message||'Não foi possível enviar a foto.')}
-   const avatar_url=SUPA+'/storage/v1/object/public/vectta-avatars/'+path+'?v='+Date.now();
-   setProfileForm(x=>({...x,avatar_url}));
+   const stamp=Date.now();
+   const path=session.user.id+'/avatar-'+stamp+'.'+ext;
+   const r=await fetch(SUPA+'/storage/v1/object/vectta-avatars/'+path,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':file.type},body:file});
+   if(!r.ok){const j:any=await r.json().catch(()=>({}));throw new Error(j.message||j.error||'Não foi possível enviar a foto.')}
+   const avatar_url=SUPA+'/storage/v1/object/public/vectta-avatars/'+path;
    const pr=await fetch(SUPA+'/rest/v1/profiles?id=eq.'+session.user.id,{method:'PATCH',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({avatar_url})});
-   const pj:any=await pr.json();if(!pr.ok)throw new Error(pj.message||'Foto enviada, mas não foi possível atualizar o perfil.');setProfile(pj[0]||profile);setNotice('Foto atualizada.');
+   const pj:any=await pr.json().catch(()=>[]);
+   if(!pr.ok)throw new Error(pj.message||'Foto enviada, mas não foi possível atualizar o perfil.');
+   const updated=pj[0]||{id:session.user.id,full_name:profileForm.full_name||displayName,workspace_name:profileForm.workspace_name||'Carteira pessoal',phone:profileForm.phone||'',avatar_url};
+   setProfileForm(x=>({...x,avatar_url}));
+   setProfile(updated);
+   setNotice('Foto atualizada com sucesso.');
   }catch(e){setError(e instanceof Error?e.message:'Falha ao enviar foto.')}finally{setBusy(false)}
  }
  async function saveFeedback(){
@@ -280,8 +286,10 @@ export default function Page(){
  <section className={s.overviewKpis}>
   <button className={s.overviewKpi} onClick={()=>{setPhase('Todas');changeView('Implantações')}}><span>Implantações ativas</span><b>{active.length}</b><small>{projects.length} clientes na carteira</small></button>
   <button className={s.overviewKpi} onClick={()=>changeView('Pendências')}><span>Execução média</span><b>{avgProgress}%</b><small>{completedTasks} entregas concluídas</small></button>
-  <button className={s.overviewKpi} onClick={()=>changeView('Riscos e estratégias')}><span>Risco alto</span><b>{riskCounts.Alto}</b><small>{riskCounts.Médio} em risco médio</small></button>
-  <button className={s.overviewKpi} onClick={()=>changeView('Pendências')}><span>Pendências críticas</span><b>{criticalOpen}</b><small>{blockedOpen} itens bloqueados</small></button>
+  <button className={s.overviewKpi} onClick={()=>{setOverviewRisk('Alto');changeView('Riscos e estratégias')}}><span>Risco alto</span><b>{riskCounts.Alto}</b><small>exige ação prioritária</small></button>
+  <button className={s.overviewKpi} onClick={()=>{setOverviewRisk('Médio');changeView('Riscos e estratégias')}}><span>Risco médio</span><b>{riskCounts.Médio}</b><small>precisa de acompanhamento</small></button>
+  <button className={s.overviewKpi} onClick={()=>{setOverviewRisk('Baixo');changeView('Implantações')}}><span>Risco baixo</span><b>{riskCounts.Baixo}</b><small>operação dentro do esperado</small></button>
+  <button className={s.overviewKpi} onClick={()=>changeView('Pendências')}><span>Pendências críticas</span><b>{criticalOpen}</b><small>criticidade operacional · {blockedOpen} bloqueadas</small></button>
   <button className={s.overviewKpi} onClick={()=>changeView('Cronograma')}><span>Prazos vencidos</span><b>{lateProjects}</b><small>{dueSoon.length} vencem em até 14 dias</small></button>
   <button className={s.overviewKpi} onClick={()=>changeView('Rentabilidade')}><span>Margem operacional</span><b>{margin}%</b><small>R$ {operatingResult.toLocaleString('pt-BR')} de resultado</small></button>
  </section>
