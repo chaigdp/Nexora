@@ -77,11 +77,11 @@ export default function Page(){
 
  async function auth(path:string,body:any){
   const r=await fetch(SUPA+'/auth/v1/'+path,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const j=await r.json();if(!r.ok)throw new Error(j.msg||j.message||j.error_description||'Não foi possível concluir.');return j;
+  const j:any=await r.json();if(!r.ok)throw new Error(j.msg||j.message||j.error_description||'Não foi possível concluir.');return j;
  }
  async function api(table:string,token:string){
   const r=await fetch(SUPA+'/rest/v1/'+table+'?select=*',{headers:{apikey:KEY,Authorization:'Bearer '+token}});
-  const j=await r.json();if(!r.ok)throw new Error(j.message||'Falha ao carregar dados.');return j;
+  const j:any=await r.json();if(!r.ok)throw new Error(j.message||'Falha ao carregar dados.');return j;
  }
  async function load(){
   if(!session)return;
@@ -123,7 +123,7 @@ export default function Page(){
   try{
    const body={user_id:session.user.id,client:form.client,segment:form.segment,system:form.system,owner:form.owner,phase:form.phase,start_date:today(),due_date:form.due||null,scope:form.scope,manual_risk_level:'Baixo',metadata:{revenue:Number(form.revenue||0)}};
    const r=await fetch(SUPA+'/rest/v1/projects',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(body)});
-   if(!r.ok)throw new Error((await r.json()).message||'Falha ao salvar.');
+   if(!r.ok){const j:any=await r.json();throw new Error(j.message||'Falha ao salvar.');}
    setModal(false);setForm({client:'',segment:'',system:'',owner:'Chai',phase:'Descoberta',due:'',scope:'',revenue:'0'});await load();setNotice('Implantação criada.');
   }catch(e){setError(e instanceof Error?e.message:'Falha ao salvar.')}finally{setBusy(false)}
  }
