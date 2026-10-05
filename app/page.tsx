@@ -20,7 +20,10 @@ type Op={id:string;project_id:string;kind:string;title:string;owner:string;due_d
 type Session={access_token:string;refresh_token?:string;user:{id:string;email?:string;user_metadata?:any}};
 type Profile={id:string;full_name:string;workspace_name:string;phone?:string;avatar_url?:string};
 type Feedback={id:string;project_id:string;contact_name:string;contact_role:string;channel:string;csat:number|null;nps:number|null;ces:number|null;comment:string;created_at:string};
-type Campaign={id:string;name:string;channel:string;message:string;audience:string;status:string;target_filter:any;scheduled_at:string|null;created_at:string};
+type Campaign={id:string;name:string;channel:string;message:string;audience:string;status:string;target_filter:any;scheduled_at:string|null;created_at:string;recipient_mode?:string;template_name?:string;template_language?:string};
+type CampaignContact={id:string;name:string;phone:string;email:string;segment:string;group_name:string;profile:string;consent:boolean;source:string;tags:any};
+type CampaignRecipient={id:string;campaign_id:string;name:string;phone:string;email:string;source:string;status:string;provider_message_id:string;error:string;created_at:string;sent_at:string|null;delivered_at:string|null;read_at:string|null};
+type ImportContact={name:string;phone:string;email:string;segment:string;group_name:string;profile:string};
 
 const phases=['Descoberta','Planejamento e desenho','Configuração','Integrações','Migração','Testes','Treinamento','Prontidão e cutover','Entrada em operação','Acompanhamento','Concluída'];
 const trailStages=[
@@ -85,6 +88,8 @@ export default function Page(){
  const [ops,setOps]=useState<Op[]>([]);
  const [feedbacks,setFeedbacks]=useState<Feedback[]>([]);
  const [campaigns,setCampaigns]=useState<Campaign[]>([]);
+ const [campaignContacts,setCampaignContacts]=useState<CampaignContact[]>([]);
+ const [campaignRecipients,setCampaignRecipients]=useState<CampaignRecipient[]>([]);
  const [profile,setProfile]=useState<Profile|null>(null);
  const [view,setView]=useState('Início');
  const [previousView,setPreviousView]=useState('Início');
@@ -106,7 +111,9 @@ export default function Page(){
  const [overviewRisk,setOverviewRisk]=useState<'Todos'|'Alto'|'Médio'|'Baixo'>('Todos');
  const [form,setForm]=useState({client:'',segment:'',system:'',owner:'Chai',phase:'Descoberta',due:'',scope:'',revenue:'0',cnpj:'',contact_name:'',contact_email:'',contact_phone:'',message_opt_in:false,preferred_channel:'WhatsApp'});
  const [feedbackForm,setFeedbackForm]=useState({project_id:'',contact_name:'',contact_role:'',channel:'Reunião',csat:'5',nps:'10',ces:'6',comment:''});
- const [campaignForm,setCampaignForm]=useState({name:'',channel:'WhatsApp',audience:'Todos',message:''});
+ const [campaignForm,setCampaignForm]=useState({name:'',channel:'WhatsApp',audience:'Todos',message:'',recipientMode:'base',manualName:'',manualPhone:'',manualConsent:false,segment:'Todos',phase:'Todas',risk:'Todos',template_name:'',template_language:'pt_BR'});
+ const [importedContacts,setImportedContacts]=useState<ImportContact[]>([]);
+ const [importConsent,setImportConsent]=useState(false);
  const [profileForm,setProfileForm]=useState({full_name:'',workspace_name:'Carteira pessoal',phone:'',avatar_url:''});
 
  useEffect(()=>{const raw=localStorage.getItem('vectta.session');if(raw){try{setSession(JSON.parse(raw))}catch{}}},[]);
@@ -126,8 +133,8 @@ export default function Page(){
  async function load(){
   if(!session)return;
   try{
-   const [p,t,o,fb,ca,pr]=await Promise.all([api('projects',session.access_token),api('tasks',session.access_token),api('operations',session.access_token),api('feedbacks',session.access_token),api('campaigns',session.access_token),api('profiles',session.access_token)]);
-   setProjects(p);setTasks(t);setOps(o);setFeedbacks(fb);setCampaigns(ca);const own=pr[0]||null;setProfile(own);if(own)setProfileForm({full_name:own.full_name||'',workspace_name:own.workspace_name||'Carteira pessoal',phone:own.phone||'',avatar_url:own.avatar_url||''});
+   const [p,t,o,fb,ca,cc,cr,pr]=await Promise.all([api('projects',session.access_token),api('tasks',session.access_token),api('operations',session.access_token),api('feedbacks',session.access_token),api('campaigns',session.access_token),api('campaign_contacts',session.access_token),api('campaign_recipients',session.access_token),api('profiles',session.access_token)]);
+   setProjects(p);setTasks(t);setOps(o);setFeedbacks(fb);setCampaigns(ca);setCampaignContacts(cc);setCampaignRecipients(cr);const own=pr[0]||null;setProfile(own);if(own)setProfileForm({full_name:own.full_name||'',workspace_name:own.workspace_name||'Carteira pessoal',phone:own.phone||'',avatar_url:own.avatar_url||''});
   }catch(e){setError(e instanceof Error?e.message:'Falha ao carregar.')}
  }
  async function submitAuth(){
@@ -144,7 +151,7 @@ export default function Page(){
    }
   }catch(e){setError(e instanceof Error?e.message:'Falha na autenticação.')}finally{setBusy(false)}
  }
- function logout(){localStorage.removeItem('vectta.session');setSession(null);setDemo(false);setProjects([]);setTasks([]);setOps([]);setFeedbacks([]);setCampaigns([]);setProfile(null)}
+ function logout(){localStorage.removeItem('vectta.session');setSession(null);setDemo(false);setProjects([]);setTasks([]);setOps([]);setFeedbacks([]);setCampaigns([]);setCampaignContacts([]);setCampaignRecipients([]);setProfile(null)}
  function enterDemo(){setDemo(true);setSession({access_token:'demo',user:{id:'demo',email:'demo@vectta.local',user_metadata:{full_name:'Chai'}}});setProjects(demos);setTasks(demoTasks);setOps(demoOps)}
  const current=projects.find(p=>p.id===selected);
  const currentTrailIndex=current?Math.max(0,trailStages.findIndex(x=>x.phase===current.phase)):-1;
