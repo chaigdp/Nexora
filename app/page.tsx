@@ -102,7 +102,7 @@ export default function Page(){
  useEffect(()=>{if(session&&!demo)void load()},[session,demo]);
  useEffect(()=>{if(!session||demo)return;const id=setInterval(()=>void load(),30000);return()=>clearInterval(id)},[session?.access_token,demo]);
  useEffect(()=>{setShowTrail(false);setTrailFocus('')},[selected]);
- useEffect(()=>{if(typeof window==='undefined')return;const h=new URLSearchParams(window.location.hash.slice(1));const access=h.get('access_token'),refresh=h.get('refresh_token');if(!access)return;fetch(SUPA+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+access}}).then(r=>r.json()).then(user=>{if(user?.id){const next={access_token:access,refresh_token:refresh||undefined,user};setSession(next);localStorage.setItem('vectta.session',JSON.stringify(next));history.replaceState(null,'',location.pathname+location.search)}}).catch(()=>{})},[]);
+ useEffect(()=>{if(typeof window==='undefined')return;const h=new URLSearchParams(window.location.hash.slice(1));const access=h.get('access_token'),refresh=h.get('refresh_token');if(!access)return;fetch(SUPA+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+access}}).then(r=>r.json()).then((user:any)=>{if(user?.id){const next:Session={access_token:access,refresh_token:refresh||undefined,user};setSession(next);localStorage.setItem('vectta.session',JSON.stringify(next));history.replaceState(null,'',location.pathname+location.search)}}).catch(()=>{})},[]);
 
  async function auth(path:string,body:any){
   const r=await fetch(SUPA+'/auth/v1/'+path,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
