@@ -62,7 +62,7 @@ if(b.action==='password.change'){
  if(await verifyPassword(input.newPassword,user.password,user.salt))return reply({error:'A nova senha precisa ser diferente da senha atual.'},400);
  const salt=crypto.randomUUID(),next=await hashPassword(input.newPassword,salt);
  await db.batch([db.prepare('UPDATE users SET password=?,salt=? WHERE id=?').bind(next,salt,user.id),db.prepare('DELETE FROM sessions WHERE workspace=?').bind(user.workspace)]);
- return reply({ok:true,verifiedBy:identityVerified?'chatgpt':'current-password'});
+ return reply({ok:true,verifiedBy:identityVerified?'chatgpt':'current-password'},200,cookie('',req,0));
 }
 if(b.action==='logout'){await db.prepare('DELETE FROM sessions WHERE token=?').bind(s.token).run();return reply({ok:true},200,cookie('',req,0));}
 const audit=(project:string,message:string)=>db.prepare('INSERT INTO events(id,workspace,project,message,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),s.workspace,project,message,new Date().toISOString());
