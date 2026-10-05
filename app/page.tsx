@@ -3,7 +3,7 @@ import {useEffect,useMemo,useState} from 'react';
 import {
   LayoutDashboard,Layers3,ListTodo,ChartNoAxesCombined,ShieldCheck,BookOpen,AlertTriangle,
   CalendarDays,ClipboardCheck,TestTube2,Headphones,Workflow,Settings2,Plug,WalletCards,
-  Plus,Search,ChevronRight,Check,Clock3,Menu,LogOut,X,KeyRound,ArrowLeft,UserRound,MessageSquare,Send,Camera,Phone,Route,BarChart3,RefreshCw
+  Plus,Search,ChevronRight,Check,Clock3,Menu,LogOut,X,KeyRound,ArrowLeft,UserRound,MessageSquare,Send,Camera,Phone,Route,RefreshCw
 } from 'lucide-react';
 import s from './vectta.module.css';
 
@@ -38,7 +38,7 @@ const trailStages=[
 ];
 const nav=[
 ['Início',LayoutDashboard],['Visão geral',ChartNoAxesCombined],['Implantações',Layers3],['Pendências',ListTodo],
-['Resultados',WalletCards],['Relatórios e dados',BarChart3],['Feedbacks',MessageSquare],['Campanhas',Send],['Segurança',ShieldCheck],['Guia de uso',BookOpen],['Riscos e estratégias',AlertTriangle],
+['Resultados',WalletCards],['Relatórios e dados',ChartNoAxesCombined],['Feedbacks',MessageSquare],['Campanhas',Send],['Segurança',ShieldCheck],['Guia de uso',BookOpen],['Riscos e estratégias',AlertTriangle],
 ['Cronograma',CalendarDays],['Requisitos',ClipboardCheck],['Testes',TestTube2],['Chamados',Headphones],
 ['Processos',Workflow],['Manual ERP',Settings2],['Entrada em operação',Check],['Integrações',Plug],['Rentabilidade',WalletCards]
 ] as const;
