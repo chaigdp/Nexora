@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="#0b2637"/><text x="9" y="30" font-family="Arial" font-weight="bold" font-size="28" fill="#57d5e5">N</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="Vectta">
+<defs><linearGradient id="g" x1="3" y1="3" x2="37" y2="37" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#14D8FF"/><stop offset=".26" stop-color="#2D5BFF"/><stop offset=".5" stop-color="#6A2BFF"/><stop offset=".72" stop-color="#B21CF2"/><stop offset=".92" stop-color="#FF2E9A"/></linearGradient></defs>
+<rect x="2" y="2" width="36" height="36" rx="10" fill="url(#g)" stroke="#FFFFFF" stroke-width="1.4"/>
+<text x="20" y="25" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="16" font-weight="800" letter-spacing="-1.4" fill="#FFFFFF">VT</text>
+<rect x="10" y="30" width="8" height="2" rx="1" fill="#FF4FD8"/><rect x="22" y="30" width="8" height="2" rx="1" fill="#22E4FF"/>
+</svg>
