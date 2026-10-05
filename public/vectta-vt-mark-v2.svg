@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Vectta VT">
+<defs>
+  <linearGradient id="g" x1="6" y1="8" x2="58" y2="56" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#14D8FF"/><stop offset=".26" stop-color="#2D5BFF"/><stop offset=".5" stop-color="#6A2BFF"/><stop offset=".72" stop-color="#B21CF2"/><stop offset=".92" stop-color="#FF2E9A"/>
+  </linearGradient>
+  <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.2"/></filter>
+</defs>
+<rect x="5" y="5" width="54" height="54" rx="15" fill="none" stroke="url(#g)" stroke-width="4" filter="url(#glow)" opacity=".85"/>
+<rect x="6" y="6" width="52" height="52" rx="14" fill="url(#g)" stroke="#FFFFFF" stroke-width="1.6"/>
+<path d="M8 39 C18 19 38 10 56 10" fill="none" stroke="#FFFFFF" stroke-opacity=".18" stroke-width="1"/>
+<text x="32" y="38" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="24" font-weight="800" letter-spacing="-2" fill="#FFFFFF">VT</text>
+<rect x="17" y="46" width="12" height="3" rx="1.5" fill="#FF4FD8"/><rect x="35" y="46" width="12" height="3" rx="1.5" fill="#22E4FF"/>
+</svg>
