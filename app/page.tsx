@@ -24,6 +24,7 @@ type Campaign={id:string;name:string;channel:string;message:string;audience:stri
 type CampaignContact={id:string;name:string;phone:string;email:string;segment:string;group_name:string;profile:string;consent:boolean;source:string;tags:any};
 type CampaignRecipient={id:string;campaign_id:string;name:string;phone:string;email:string;source:string;status:string;provider_message_id:string;error:string;created_at:string;sent_at:string|null;delivered_at:string|null;read_at:string|null};
 type ImportContact={name:string;phone:string;email:string;segment:string;group_name:string;profile:string};
+type CampaignTarget={name:string;phone:string;email:string;source:string;segment?:string;group_name?:string;profile?:string};
 
 const phases=['Descoberta','Planejamento e desenho','Configuração','Integrações','Migração','Testes','Treinamento','Prontidão e cutover','Entrada em operação','Acompanhamento','Concluída'];
 const trailStages=[
@@ -111,7 +112,7 @@ export default function Page(){
  const [overviewRisk,setOverviewRisk]=useState<'Todos'|'Alto'|'Médio'|'Baixo'>('Todos');
  const [form,setForm]=useState({client:'',segment:'',system:'',owner:'Chai',phase:'Descoberta',due:'',scope:'',revenue:'0',cnpj:'',contact_name:'',contact_email:'',contact_phone:'',message_opt_in:false,preferred_channel:'WhatsApp'});
  const [feedbackForm,setFeedbackForm]=useState({project_id:'',contact_name:'',contact_role:'',channel:'Reunião',csat:'5',nps:'10',ces:'6',comment:''});
- const [campaignForm,setCampaignForm]=useState({name:'',channel:'WhatsApp',audience:'Todos',message:'',recipientMode:'base',manualName:'',manualPhone:'',manualConsent:false,segment:'Todos',phase:'Todas',risk:'Todos',template_name:'',template_language:'pt_BR'});
+ const [campaignForm,setCampaignForm]=useState({name:'',channel:'WhatsApp',audience:'Todos',message:'',recipientMode:'base',manualName:'',manualPhone:'',manualConsent:false,segment:'Todos',phase:'Todas',risk:'Todos',listGroup:'Todos',listProfile:'Todos',template_name:'',template_language:'pt_BR'});
  const [importedContacts,setImportedContacts]=useState<ImportContact[]>([]);
  const [importConsent,setImportConsent]=useState(false);
  const [profileForm,setProfileForm]=useState({full_name:'',workspace_name:'Carteira pessoal',phone:'',avatar_url:''});
@@ -198,8 +199,26 @@ export default function Page(){
  const finishedWithDates=projects.filter(p=>p.completed_date&&p.due_date);
  const avgScheduleVariance=finishedWithDates.length?Math.round(finishedWithDates.reduce((sum,p)=>sum+Math.round((new Date((p.completed_date as string)+'T12:00:00').getTime()-new Date((p.due_date as string)+'T12:00:00').getTime())/86400000),0)/finishedWithDates.length):0;
  const onTimeRate=finishedWithDates.length?Math.round(finishedWithDates.filter(p=>(p.completed_date as string)<=(p.due_date as string)).length/finishedWithDates.length*100):0;
- const eligibleCampaignProjects=projects.filter(p=>p.message_opt_in&&(p.contact_phone||p.contact_email));
- const campaignTargets=eligibleCampaignProjects.filter(p=>campaignForm.audience==='Todos'||campaignForm.audience==='Ativos'&&p.phase!=='Concluída'||campaignForm.audience==='Em risco'&&risk(p).level!=='Baixo'||campaignForm.audience==='Pós-go-live'&&['Entrada em operação','Acompanhamento','Concluída'].includes(p.phase));
+ const normalizePhone=(value:string)=>{let d=(value||'').replace(/\D/g,'');if((d.length===10||d.length===11)&&!d.startsWith('55'))d='55'+d;return d};
+ const campaignSegments=['Todos',...Array.from(new Set(projects.map(p=>p.segment).filter(Boolean))).sort()];
+ const importedGroups=['Todos',...Array.from(new Set(importedContacts.map(x=>x.group_name).filter(Boolean))).sort()];
+ const importedProfiles=['Todos',...Array.from(new Set(importedContacts.map(x=>x.profile).filter(Boolean))).sort()];
+ const contactMatchesChannel=(phone:string,email:string)=>campaignForm.channel==='E-mail'?!!email:!!phone;
+ const baseCampaignTargets:CampaignTarget[]=projects.filter(p=>
+   p.message_opt_in&&
+   contactMatchesChannel(p.contact_phone||'',p.contact_email||'')&&
+   (campaignForm.audience==='Todos'||campaignForm.audience==='Ativos'&&p.phase!=='Concluída'||campaignForm.audience==='Em risco'&&risk(p).level!=='Baixo'||campaignForm.audience==='Pós-go-live'&&['Entrada em operação','Acompanhamento','Concluída'].includes(p.phase))&&
+   (campaignForm.segment==='Todos'||p.segment===campaignForm.segment)&&
+   (campaignForm.phase==='Todas'||p.phase===campaignForm.phase)&&
+   (campaignForm.risk==='Todos'||risk(p).level===campaignForm.risk)
+ ).map(p=>({name:p.contact_name||p.client,phone:normalizePhone(p.contact_phone||''),email:p.contact_email||'',source:'base',segment:p.segment,group_name:p.phase,profile:'Risco '+risk(p).level}));
+ const manualCampaignTargets:CampaignTarget[]=campaignForm.manualConsent&&contactMatchesChannel(campaignForm.manualPhone,'')&&normalizePhone(campaignForm.manualPhone)?[{name:campaignForm.manualName||'Contato',phone:normalizePhone(campaignForm.manualPhone),email:'',source:'manual'}]:[];
+ const importedCampaignTargets:CampaignTarget[]=importConsent?importedContacts.filter(x=>
+   contactMatchesChannel(x.phone,x.email)&&
+   (campaignForm.listGroup==='Todos'||x.group_name===campaignForm.listGroup)&&
+   (campaignForm.listProfile==='Todos'||x.profile===campaignForm.listProfile)
+ ).map(x=>({...x,phone:normalizePhone(x.phone),source:'planilha'})):[];
+ const campaignTargets:CampaignTarget[]=campaignForm.recipientMode==='manual'?manualCampaignTargets:campaignForm.recipientMode==='list'?importedCampaignTargets:baseCampaignTargets;
  function experiencePlan(p:Project){
   const rr=risk(p);
   const pf=feedbacks.filter(f=>f.project_id===p.id).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime());
