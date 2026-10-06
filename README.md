@@ -4,7 +4,11 @@ Plataforma de gestão de implementação de sistemas. Carteira da analista com c
 
 ## Acessar
 
-Versão atual recomendada (Supabase):
+Versão atual (Next.js na Vercel, dados no Supabase):
+
+https://vectta.vercel.app
+
+A Edge Function do Supabase abaixo é uma interface anterior e não contém o novo módulo de CS:
 
 https://pldxmxgrgyfwtnhxqaji.supabase.co/functions/v1/vectta
 
@@ -20,7 +24,13 @@ Clientes incluem contato, identificação empresarial, vínculo CRM, objetivo me
 
 Importação CSV permite mapear colunas e conferir até 50 projetos antes de gravar. CRM + identificador externo não pode repetir. Exportação inclui campos comerciais. A fila de integração registra mudanças de implantação, mas nenhum conector HubSpot está ativo.
 
-## Arquitetura
+## Acompanhamento de CS e chAI
+
+O menu Acompanhamento de CS reúne saúde explicada por cliente, próximos contatos e planos de acompanhamento, atrito, reversão, adoção e expansão. Os planos usam a tabela operations com isolamento por usuário. A demonstração mantém os planos apenas na memória da página.
+
+A chAI recebe o contexto autorizado da carteira pelo servidor. Respostas reais dependem da configuração do AI Gateway na hospedagem; a demonstração usa regras locais, identificadas na interface. Consulte [implementação e limites](docs/CS_CHAI_2026-10-06.md).
+
+## Arquitetura anterior
 
 React, TypeScript, Cloudflare Workers e banco D1. Validação de entrada, consultas parametrizadas, isolamento por carteira, verificação de origem, senhas derivadas por PBKDF2 e sessões HttpOnly. A rota `/api/vectta` é canônica; `/api/nexora` e identificadores internos antigos permanecem apenas para compatibilidade de sessões e integrações existentes.
 
@@ -46,3 +56,4 @@ A integração contínua em `.github/workflows/ci.yml` verifica tipos, testes de
 Ainda pendentes: domínio próprio, validação completa do redirecionamento de recuperação de senha por e-mail no ambiente publicado, permissões por equipe, anexos privados, limpeza automática de demonstrações, restauração de cópia de segurança testada, alertas externos e sincronização CRM bidirecional. Manual ERP registra procedimentos do projeto; não substitui documentação oficial ou validação fiscal. O aceite é registrado pela analista, não assinado digitalmente pelo cliente.
 
 [Escopo e próximos diferenciais](docs/VECTTA_2_PRODUTO.md). A senha demo é intencionalmente pública; não permite acessar carteiras pessoais. Não enviar segredos ou dados reais ao repositório.
+

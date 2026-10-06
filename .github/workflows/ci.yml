@@ -17,5 +17,7 @@ jobs:
       - run: npm install --global pnpm@11.25.0
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc --noEmit
+      - run: node --test tests/whatsapp-test.mjs tests/customer-success.mjs
       - run: node tests/auth-session.mjs
       - run: pnpm build
+
