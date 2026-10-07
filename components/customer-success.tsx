@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {ArrowUpRight,CheckCircle2,HeartPulse,MessageCircle,Plus,Send,Sparkles,Target,X} from 'lucide-react';
-import {buildCSDraft,closed,csCategories,csCategory,csStatuses,csToday,inferCSCategory,summarizeCS,type CSData,type CSOperation} from '../lib/customer-success';
+import {ArrowUpRight,CalendarDays,CheckCircle2,Clock3,HeartPulse,ListTodo,MessageCircle,Plus,Send,Sparkles,Target,X} from 'lucide-react';
+import {buildCSDraft,client360,closed,csCategories,csCategory,csStatuses,csToday,inferCSCategory,summarizeCS,type CSData,type CSOperation} from '../lib/customer-success';
 import s from '../app/vectta.module.css';
 
 type Props={data:CSData;demo:boolean;token:string;owner:string;onSave:(plan:CSOperation)=>Promise<void>;onOpen:(id:string)=>void};
@@ -18,7 +18,7 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
   useEffect(()=>{if(draft)editor.current?.scrollIntoView({behavior:'smooth',block:'start'});},[draft?.id,draft?.project_id]);
   useEffect(()=>{chatEnd.current?.scrollIntoView({behavior:'smooth',block:'nearest'});},[messages.length]);
   const summary=summarizeCS(data),portfolio=summary.portfolio,current=portfolio.find(x=>x.project.id===selected);
-  const plans=summary.plans,activePlans=summary.activePlans,highPortfolio=summary.highPortfolio;
+  const plans=summary.plans,activePlans=summary.activePlans,highPortfolio=summary.highPortfolio,current360=selected?client360(selected,data):null;
   const visible=portfolio.filter(x=>(filter==='Todos'||x.level===filter)&&(tier==='Todos'||x.project.metadata?.cs_portfolio===tier)&&x.project.client.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
   const scope=current?.project.client||'Toda a carteira';
   const scopedPlans=plans.filter(p=>!selected||p.project_id===selected).sort((a,b)=>Number(closed(a.status))-Number(closed(b.status))||(a.due_date||'9999').localeCompare(b.due_date||'9999'));
@@ -80,13 +80,29 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
           {!visible.length&&<div className={s.empty}>Nenhum cliente nesse filtro.</div>}
           <details className={s.csMethod}><summary>Como a saúde é calculada?</summary><p>É uma regra de priorização, não uma previsão de cancelamento. A base é 100 pontos: risco alto −30 ou médio −15; implantação atrasada −20; bloqueio −20; entrega atrasada −10 ou crítica −20; teste reprovado −20; avaliação negativa −25 ou intermediária −10; reversão aberta −40; atrito aberto −20; contato de CS atrasado −10. A nota mínima é zero.</p><p>Abaixo de 50: crítico. De 50 a 79: atenção. De 80 a 100: estável. Sem registros suficientes, não há nota. A última avaliação só influencia a nota se tiver até 90 dias. “Estável” não comprova satisfação nem adoção.</p></details>
         </section>
-        {current&&<section className={s.dashboardCard}>
-          <div className={s.dashboardTitle}><div><span className={s.eyebrow}>CLIENTE EM FOCO</span><h2>{current.project.client}</h2></div><button className={s.link} onClick={()=>onOpen(current.project.id)}>Abrir implantação</button></div>
-          <div className={s.csSignals}>{current.signals.map(signal=><div key={signal.reason}><span>{signal.source}</span><strong>{signal.reason}</strong><small>−{signal.points} pontos</small></div>)}{!current.signals.length&&<p>Não há alerta nas regras atuais. Confirme a percepção do cliente no próximo contato.</p>}</div>
-          {current.latest&&<div className={s.csSignals}><div><span>VOZ DO CLIENTE · {date(current.latest.created_at.slice(0,10))}</span><strong>{current.latest.comment||'Avaliação registrada sem comentário.'}</strong><small>CSAT {current.latest.csat??'—'} · NPS {current.latest.nps??'—'} · CES {current.latest.ces??'—'}</small></div></div>}
-          {current.gaps.length>0&&<p className={s.csMissing}>Informações a completar: {current.gaps.join(' · ')}.</p>}
+        {current&&current360&&<section className={s.dashboardCard}>
+          <div className={s.dashboardTitle}><div><span className={s.eyebrow}>CLIENTE EM FOCO · VISÃO 360°</span><h2>{current.project.client}</h2><p>{current.project.segment||'Segmento não informado'} · {current.project.owner||'Sem responsável'} · {current.project.phase}</p></div><button className={s.link} onClick={()=>onOpen(current.project.id)}>Abrir implantação</button></div>
+          <div className={s.cs360Grid}>
+            <div className={s.cs360Item}><HeartPulse size={17}/><span>Saúde</span><b>{current.score===null?'Sem dados':current.score+'/100'}</b><small>{current.level}</small></div>
+            <div className={s.cs360Item}><Target size={17}/><span>Planos ativos</span><b>{current360.activePlans.length}</b><small>{current360.activePlans.length?'ações em acompanhamento':'nenhum plano aberto'}</small></div>
+            <div className={s.cs360Item}><ListTodo size={17}/><span>Pendências</span><b>{current360.openTasks.length}</b><small>{current360.blockedCount} bloqueadas · {current360.lateCount} atrasadas</small></div>
+            <div className={s.cs360Item}><CalendarDays size={17}/><span>Próximo contato</span><b>{current360.nextContact?.due_date?date(current360.nextContact.due_date):'Não definido'}</b><small>{current360.nextContact?csCategory(current360.nextContact)+' · '+current360.nextContact.status:'crie uma cadência de relacionamento'}</small></div>
+          </div>
+          <div className={s.csFocusGrid}>
+            <div>
+              <div className={s.csBlockTitle}><strong>Sinais que pedem atenção</strong><span>{current.signals.length}</span></div>
+              <div className={s.csSignals}>{current.signals.map(signal=><div key={signal.reason}><span>{signal.source}</span><strong>{signal.reason}</strong><small>−{signal.points} pontos</small></div>)}{!current.signals.length&&<p>Não há alerta nas regras atuais. Confirme a percepção do cliente no próximo contato.</p>}</div>
+              {current.gaps.length>0&&<p className={s.csMissing}>Informações a completar: {current.gaps.join(' · ')}.</p>}
+            </div>
+            <div>
+              <div className={s.csBlockTitle}><strong>Histórico de relacionamento</strong><span>{current360.timeline.length}</span></div>
+              <div className={s.csTimeline}>{current360.timeline.slice(0,6).map(item=><article key={item.id}><i data-type={item.type}/><div><span>{date(item.date.slice(0,10))} · {item.type==='feedback'?'Feedback':'Plano de CS'}</span><strong>{item.title}</strong><p>{item.description}</p><small>{item.meta}</small></div></article>)}</div>
+              {!current360.timeline.length&&<div className={s.csHistoryEmpty}><Clock3 size={18}/><span>Ainda não há histórico suficiente. Registre feedbacks e atualizações dos planos de CS.</span></div>}
+            </div>
+          </div>
+          {current.latest&&<div className={s.csVoice}><span>VOZ DO CLIENTE · {date(current.latest.created_at.slice(0,10))}</span><strong>{current.latest.comment||'Avaliação registrada sem comentário.'}</strong><small>CSAT {current.latest.csat??'—'} · NPS {current.latest.nps??'—'} · CES {current.latest.ces??'—'}</small></div>}
           <div className={s.csNext}><Target size={20}/><div><strong>Próxima ação sugerida por regras</strong><p>{current.nextAction}</p></div></div>
-          <button className={s.btn+' '+s.primary} onClick={()=>createPlan(current.project.id)}>Transformar em acompanhamento</button>
+          <div className={s.csFocusActions}><button className={s.btn+' '+s.primary} onClick={()=>createPlan(current.project.id)}>Transformar em acompanhamento</button><button className={s.btn+' '+s.ghost} disabled={asking} onClick={()=>void ask('Analise este cliente em 360 graus. Priorize os riscos, o relacionamento, as pendências e o próximo passo mais importante.')}>Pedir análise 360° à chAI</button></div>
         </section>}
         {draft&&<section ref={editor} className={s.dashboardCard+' '+s.csEditor} aria-label="Editor de acompanhamento">
           <div className={s.dashboardTitle}><h2>{draft.id?'Editar acompanhamento':'Novo acompanhamento'}</h2><button className={s.btn+' '+s.ghost} disabled={saving} onClick={()=>setDraft(null)} aria-label="Fechar editor"><X size={18}/></button></div>
@@ -120,7 +136,7 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
           {asking&&<p role="status" className={s.chaiDisclosure}>A chAI está analisando os registros...</p>}<div ref={chatEnd}/>
         </div>
         {chatError&&<div className={s.labError} role="alert">{chatError}</div>}
-        <div className={s.chaiSuggestions}>{['Quem precisa de atenção?','Como conduzir a reversão?','Sugira uma mensagem de contato'].map(q=><button key={q} disabled={asking||!data.projects.length} onClick={()=>void ask(q)}>{q}</button>)}</div>
+        <div className={s.chaiSuggestions}>{(selected?['Analise este cliente em 360°','Monte um plano para os próximos 7 dias','O que está faltando registrar?','Sugira uma mensagem executiva']:['Quem precisa de atenção?','Priorize minha carteira','Quais contatos estão atrasados?','Onde há risco de reversão?']).map(q=><button key={q} disabled={asking||!data.projects.length} onClick={()=>void ask(q)}>{q}</button>)}</div>
         <form className={s.chaiComposer} onSubmit={e=>{e.preventDefault();void ask();}}><label htmlFor="chai-question">Pergunte à chAI</label><textarea id="chai-question" value={question} onChange={e=>setQuestion(e.target.value)} maxLength={2000} placeholder="Como posso melhorar a saúde desta carteira?" disabled={asking}/><div><small>Conversa desta sessão</small><button className={s.btn+' '+s.primary} type="submit" disabled={asking||!question.trim()||!data.projects.length}><Send size={15}/>Perguntar</button></div></form>
         <small className={s.chaiFooter}>Nenhuma mensagem é enviada ao cliente. Uma sugestão só vira plano quando você a revisar e salvar.</small>
       </aside>
