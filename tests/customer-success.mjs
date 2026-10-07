@@ -22,6 +22,7 @@ function mockRequest({allow=true,projects=[project],providerStatus=200}={}){
  const calls=[];
  const request=async(url,options)=>{calls.push({url,options});
   if(url.endsWith('/auth/v1/user'))return Response.json(allow?{id:crypto.randomUUID()}:{},{status:allow?200:401});
+  if(url.includes('/rest/v1/rpc/get_demo_portfolio'))return Response.json({projects,feedbacks:[feedback],tasks:[],operations:[]});
   if(url.includes('/rest/v1/projects?'))return Response.json(projects);
   if(url.includes('/rest/v1/feedbacks?'))return Response.json([{...feedback,comment:'Contato maria@example.com, +55 31 99999-9999'}]);
   if(url.includes('/rest/v1/'))return Response.json([]);
@@ -29,6 +30,7 @@ function mockRequest({allow=true,projects=[project],providerStatus=200}={}){
   throw new Error('unexpected URL');
  };return {request,calls};
 }
+test('demo chat uses the public demo portfolio without user authentication',async()=>{const m=mockRequest();const body={demo:true,project_id:project.id,messages:[{role:'user',content:'Como melhorar a saúde?'}]};const r=await handleChai(req(body,{Authorization:'Bearer demo'}),{...m,key:'fake'});assert.equal(r.status,200);assert.ok(m.calls.some(x=>x.url.includes('/rest/v1/rpc/get_demo_portfolio')));assert.ok(!m.calls.some(x=>x.url.endsWith('/auth/v1/user')));const payload=await r.json();assert.equal(payload.mode,'ai');assert.equal(payload.scope,'cliente');});
 test('chat requires verified authentication before reading data or invoking AI',async()=>{const m=mockRequest({allow:false});const r=await handleChai(req(),{...m,key:'fake-gateway'});assert.equal(r.status,401);assert.equal(m.calls.length,1);const r2=await handleChai(req(question,{Authorization:''}),{...m,key:'fake'});assert.equal(r2.status,401);assert.equal(m.calls.length,1);});
 test('chat cannot use a client absent from authenticated RLS results',async()=>{const m=mockRequest({projects:[]});const r=await handleChai(req(),{...m,key:'fake'});assert.equal(r.status,404);assert.ok(!m.calls.some(x=>x.url.includes('ai-gateway')));});
 test('model receives sanitized server context, not tokens or client supplied health',async()=>{const m=mockRequest();const r=await handleChai(req({...question,health:'fake',user_id:'other'}),{...m,key:'gateway-secret'});assert.equal(r.status,200);const call=m.calls.find(c=>c.url.includes('ai-gateway'));assert.ok(call);assert.equal(call.options.headers.Authorization,'Bearer gateway-secret');const payload=JSON.parse(call.options.body);assert.equal(payload.max_tokens,1000);assert.ok(!call.options.body.includes(token));assert.ok(!call.options.body.includes('maria@example.com'));assert.ok(!call.options.body.includes('99999-9999'));assert.equal((await r.json()).mode,'ai');});
