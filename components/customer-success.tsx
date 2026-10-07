@@ -10,7 +10,7 @@ const emptyPlan=(project:string,owner:string):CSOperation=>({id:'',project_id:pr
 const date=(value:string|null)=>value?new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(value+'T12:00:00Z')):'Sem data';
 
 export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Props){
-  const [filter,setFilter]=useState('Todos'),[search,setSearch]=useState(''),[selected,setSelected]=useState('');
+  const [filter,setFilter]=useState('Todos'),[tier,setTier]=useState('Todos'),[search,setSearch]=useState(''),[selected,setSelected]=useState('');
   const [draft,setDraft]=useState<CSOperation|null>(null),[saving,setSaving]=useState(false),[saveError,setSaveError]=useState(''),[notice,setNotice]=useState('');
   const [question,setQuestion]=useState(''),[messages,setMessages]=useState<Message[]>([]),[asking,setAsking]=useState(false),[chatError,setChatError]=useState('');
   const requestLock=useRef(false),saveLock=useRef(false),editor=useRef<HTMLElement>(null),chatEnd=useRef<HTMLDivElement>(null),abortRef=useRef<AbortController|null>(null);
@@ -19,7 +19,8 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
   useEffect(()=>{chatEnd.current?.scrollIntoView({behavior:'smooth',block:'nearest'});},[messages.length]);
   const portfolio=portfolioCS(data),current=portfolio.find(x=>x.project.id===selected);
   const plans=data.operations.filter(isCSPlan),activePlans=plans.filter(p=>!closed(p.status));
-  const visible=portfolio.filter(x=>(filter==='Todos'||x.level===filter)&&x.project.client.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
+  const highPortfolio=portfolio.filter(x=>x.project.metadata?.cs_portfolio==='Alta');
+  const visible=portfolio.filter(x=>(filter==='Todos'||x.level===filter)&&(tier==='Todos'||x.project.metadata?.cs_portfolio===tier)&&x.project.client.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
   const scope=current?.project.client||'Toda a carteira';
   const scopedPlans=plans.filter(p=>!selected||p.project_id===selected).sort((a,b)=>Number(closed(a.status))-Number(closed(b.status))||(a.due_date||'9999').localeCompare(b.due_date||'9999'));
   function createPlan(projectId=selected, suggestion=''){
@@ -57,8 +58,9 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
     <header className={s.pageHead}><div><span className={s.eyebrow}>SUCESSO DO CLIENTE</span><h1>Cuidar da relação. Sustentar o resultado.</h1><p>Saúde da carteira, atritos e reversões com próximos passos claros.</p></div><button className={s.btn+' '+s.primary} disabled={!data.projects.length} onClick={()=>createPlan()}><Plus size={17}/>Novo acompanhamento</button></header>
     {demo&&<p className={s.csDemo}>Demonstração com dados fictícios. Os planos ficam apenas nesta sessão e as respostas demonstrativas são geradas por regras.</p>}
     <section className={s.csKpis} aria-label="Indicadores de sucesso do cliente">
-      <button onClick={()=>setFilter('Crítico')} className={s.csKpi}><span>PRECISAM DE AÇÃO</span><b>{portfolio.filter(x=>x.level==='Crítico').length}</b><small>clientes em situação crítica</small></button>
-      <button onClick={()=>setFilter('Atenção')} className={s.csKpi}><span>EM ATENÇÃO</span><b>{portfolio.filter(x=>x.level==='Atenção').length}</b><small>acompanhamento preventivo</small></button>
+      <button onClick={()=>{setTier('Alta');setFilter('Todos')}} className={s.csKpi}><span>CARTEIRA ALTA</span><b>{highPortfolio.length}</b><small>contas estratégicas de maior valor</small></button>
+      <button onClick={()=>{setTier('Todos');setFilter('Crítico')}} className={s.csKpi}><span>PRECISAM DE AÇÃO</span><b>{portfolio.filter(x=>x.level==='Crítico').length}</b><small>clientes em situação crítica</small></button>
+      <button onClick={()=>{setTier('Todos');setFilter('Atenção')}} className={s.csKpi}><span>EM ATENÇÃO</span><b>{portfolio.filter(x=>x.level==='Atenção').length}</b><small>acompanhamento preventivo</small></button>
       <div className={s.csKpi}><span>REVERSÕES ABERTAS</span><b>{activePlans.filter(p=>csCategory(p)==='Reversão').length}</b><small>planos em condução</small></div>
       <div className={s.csKpi}><span>CONTATOS ATRASADOS</span><b>{activePlans.filter(p=>p.due_date&&p.due_date<csToday()).length}</b><small>próximo contato vencido</small></div>
     </section>
@@ -67,10 +69,10 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
       <div className={s.csMain}>
         <section className={s.dashboardCard}>
           <div className={s.dashboardTitle}><div><h2><HeartPulse size={18}/> Saúde da carteira</h2><p>Selecione um cliente para orientar a conversa com a chAI.</p></div><span className={s.badge}>{portfolio.length} clientes</span></div>
-          <div className={s.csFilters}><label>Buscar cliente<input className={s.input} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nome do cliente"/></label><label>Saúde<select className={s.input} value={filter} onChange={e=>setFilter(e.target.value)}>{['Todos','Crítico','Atenção','Estável','Sem dados'].map(x=><option key={x}>{x}</option>)}</select></label></div>
+          <div className={s.csFilters}><label>Buscar cliente<input className={s.input} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nome do cliente"/></label><label>Carteira<select className={s.input} value={tier} onChange={e=>setTier(e.target.value)}><option>Todos</option><option>Alta</option></select></label><label>Saúde<select className={s.input} value={filter} onChange={e=>setFilter(e.target.value)}>{['Todos','Crítico','Atenção','Estável','Sem dados'].map(x=><option key={x}>{x}</option>)}</select></label></div>
           <div className={s.csClientList}>{visible.map(item=><button key={item.project.id} className={s.csClient+(selected===item.project.id?' '+s.csSelected:'')} disabled={asking} onClick={()=>chooseClient(item.project.id)}>
             <div className={s.csScore} data-level={item.level}><b>{item.score??'?'}</b><small>{item.score===null?'sem dados':'/ 100'}</small></div>
-            <div className={s.csClientText}><strong>{item.project.client}</strong><span>{item.level} · {item.project.owner||'Sem responsável'} · {item.project.phase}</span><small>{item.signals[0]?.reason||item.gaps[0]||'Sem alerta nas regras atuais'}</small></div><ArrowUpRight size={16}/>
+            <div className={s.csClientText}><strong>{item.project.client}{item.project.metadata?.cs_portfolio==='Alta'&&<em className={s.csTier}>Carteira alta</em>}</strong><span>{item.level} · {item.project.owner||'Sem responsável'} · {item.project.phase}</span><small>{item.signals[0]?.reason||item.gaps[0]||'Sem alerta nas regras atuais'}</small></div><ArrowUpRight size={16}/>
           </button>)}</div>
           {!visible.length&&<div className={s.empty}>Nenhum cliente nesse filtro.</div>}
           <details className={s.csMethod}><summary>Como a saúde é calculada?</summary><p>É uma regra de priorização, não uma previsão de cancelamento. A base é 100 pontos: risco alto −30 ou médio −15; implantação atrasada −20; bloqueio −20; entrega atrasada −10 ou crítica −20; teste reprovado −20; avaliação negativa −25 ou intermediária −10; reversão aberta −40; atrito aberto −20; contato de CS atrasado −10. A nota mínima é zero.</p><p>Abaixo de 50: crítico. De 50 a 79: atenção. De 80 a 100: estável. Sem registros suficientes, não há nota. A última avaliação só influencia a nota se tiver até 90 dias. “Estável” não comprova satisfação nem adoção.</p></details>
