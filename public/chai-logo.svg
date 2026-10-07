@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 205" role="img" aria-label="chAI">
+  <defs>
+    <linearGradient id="a" x1="320" y1="40" x2="390" y2="170" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff16ef"/>
+      <stop offset="1" stop-color="#ff00a8"/>
+    </linearGradient>
+    <linearGradient id="i" x1="448" y1="38" x2="476" y2="176" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00f2ff"/>
+      <stop offset="1" stop-color="#1268ff"/>
+    </linearGradient>
+  </defs>
+  <text x="10" y="166" font-family="Arial Rounded MT Bold, Arial, Helvetica, sans-serif" font-size="172" font-weight="900" letter-spacing="-13">
+    <tspan fill="#ffffff">ch</tspan><tspan fill="url(#a)">A</tspan><tspan fill="url(#i)">I</tspan>
+  </text>
+</svg>
