@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {ArrowUpRight,CheckCircle2,HeartPulse,MessageCircle,Plus,Send,Sparkles,Target,X} from 'lucide-react';
-import {buildCSDraft,closed,csCategories,csCategory,csStatuses,inferCSCategory,isCSPlan,portfolioCS,type CSData,type CSOperation} from '../lib/customer-success';
+import {buildCSDraft,closed,csCategories,csCategory,csStatuses,csToday,inferCSCategory,isCSPlan,portfolioCS,type CSData,type CSOperation} from '../lib/customer-success';
 import s from '../app/vectta.module.css';
 
 type Props={data:CSData;demo:boolean;token:string;owner:string;onSave:(plan:CSOperation)=>Promise<void>;onOpen:(id:string)=>void};
