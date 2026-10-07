@@ -474,3 +474,55 @@ button.csKpi:hover{
 .teamList{display:grid;gap:9px}.teamMember{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px;border:1px solid rgba(75,88,158,.42);border-radius:12px;background:rgba(7,16,58,.34)}.teamMember>div:first-child{min-width:0;display:grid;gap:4px}.teamMember strong{font-size:12px;overflow:hidden;text-overflow:ellipsis}.teamMember span{font-size:10px;color:var(--muted)}.teamMemberActions{display:flex!important;grid-template-columns:none!important;align-items:center;gap:8px!important}.teamMemberActions .input{width:160px;padding:8px 10px}.teamMemberActions .btn{min-height:36px;padding:8px 10px;font-size:11px}
 @media(max-width:980px){.teamGrid{grid-template-columns:1fr}.teamGrid>.dashboardWide{grid-column:auto}.teamInviteForm{grid-template-columns:1fr 1fr}.teamInviteForm .btn{grid-column:1/-1;justify-content:center}}
 @media(max-width:650px){.teamInviteForm,.teamPermissionGuide{grid-template-columns:1fr}.teamInviteForm .btn{grid-column:auto}.teamMember{align-items:flex-start;flex-direction:column}.teamMemberActions{width:100%;flex-direction:column;align-items:stretch!important}.teamMemberActions .input,.teamMemberActions .btn{width:100%}}
+
+/* Mobile horizontal stability 2026-10-07 */
+.shell,
+.auth,
+.main,
+.content{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
+.shell,
+.main{
+  overflow-x:clip;
+}
+.tableWrap,
+.trailTrack,
+.nav{
+  overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;
+}
+@media(max-width:760px){
+  .shell,
+  .main,
+  .content,
+  .contextPageGrid,
+  .contextPageBody,
+  .csLayout,
+  .csMain,
+  .dashboardCard,
+  .panel,
+  .pendCard,
+  .riskCard{
+    min-width:0;
+    max-width:100%;
+  }
+  .content{
+    width:100%;
+    overflow-x:clip;
+  }
+  .topbar{
+    width:100%;
+    max-width:100%;
+    overflow:hidden;
+  }
+  .sidebar{
+    max-width:calc(100vw - 28px);
+  }
+  .tableWrap,
+  .trailTrack{
+    max-width:100%;
+  }
+}

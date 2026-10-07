@@ -186,3 +186,17 @@ footer,.page-footer,.module-footer{border-color:#1E2A66;color:#7180C4}
   .vectta-lockup{width:180px}
   .footer-chai{width:96px}
 }
+
+/* Mobile viewport stability 2026-10-07 */
+html,body{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+  overscroll-behavior-x:none;
+}
+body{
+  min-width:0;
+}
+@supports (overflow:clip){
+  html,body{overflow-x:clip}
+}
