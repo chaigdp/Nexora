@@ -90,6 +90,23 @@ export function portfolioCS(data:CSData,date=csToday()) {
   return data.projects.map(p=>assessCS(p,data,date)).sort((a,b)=>rank[a.level]-rank[b.level]||(a.score??101)-(b.score??101)||a.project.client.localeCompare(b.project.client));
 }
 
+export function summarizeCS(data:CSData,date=csToday()) {
+  const portfolio=portfolioCS(data,date);
+  const plans=data.operations.filter(isCSPlan);
+  const activePlans=plans.filter(p=>!closed(p.status));
+  const highPortfolio=portfolio.filter(x=>x.project.metadata?.cs_portfolio==='Alta');
+  return {
+    portfolio,
+    plans,
+    activePlans,
+    highPortfolio,
+    critical:portfolio.filter(x=>x.level==='Crítico').length,
+    attention:portfolio.filter(x=>x.level==='Atenção').length,
+    reversalsOpen:activePlans.filter(p=>csCategory(p)==='Reversão').length,
+    overdueContacts:activePlans.filter(p=>p.due_date&&p.due_date<date).length
+  };
+}
+
 export function ruleBasedCSReply(question:string,data:CSData,projectId:string) {
   const all=portfolioCS(data), items=projectId?all.filter(i=>i.project.id===projectId):all;
   if(!items.length)return 'Ainda não há clientes nesse contexto. Cadastre uma implantação para começar o acompanhamento.';
