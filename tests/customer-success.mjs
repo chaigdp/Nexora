@@ -55,13 +55,15 @@ test('chat rejects system roles, invalid IDs and oversized history',()=>{for(con
 
 const token='x'.repeat(50), question={project_id:project.id,messages:[{role:'user',content:'Como ajudar?'}]};
 const req=(body=question,headers={})=>new Request('https://vectta.test/api/chai',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',Origin:'https://vectta.test',...headers},body:JSON.stringify(body)});
-function mockRequest({allow=true,projects=[project],providerStatus=200}={}){
+function mockRequest({allow=true,projects=[project],tasks=[],operations=[],providerStatus=200}={}){
  const calls=[];
  const request=async(url,options)=>{calls.push({url,options});
   if(url.endsWith('/auth/v1/user'))return Response.json(allow?{id:crypto.randomUUID()}:{},{status:allow?200:401});
-  if(url.includes('/rest/v1/rpc/get_demo_portfolio'))return Response.json({projects,feedbacks:[feedback],tasks:[],operations:[]});
+  if(url.includes('/rest/v1/rpc/get_demo_portfolio'))return Response.json({projects,feedbacks:[feedback],tasks,operations});
   if(url.includes('/rest/v1/projects?'))return Response.json(projects);
   if(url.includes('/rest/v1/feedbacks?'))return Response.json([{...feedback,comment:'Contato maria@example.com, +55 31 99999-9999'}]);
+  if(url.includes('/rest/v1/tasks?'))return Response.json(tasks);
+  if(url.includes('/rest/v1/operations?'))return Response.json(operations);
   if(url.includes('/rest/v1/'))return Response.json([]);
   if(url==='https://ai-gateway.vercel.sh/v1/chat/completions')return Response.json({choices:[{message:{content:'Sugiro escuta e prazo combinado.'}}]},{status:providerStatus});
   throw new Error('unexpected URL');
@@ -71,4 +73,5 @@ test('demo chat uses the public demo portfolio without user authentication',asyn
 test('chat requires verified authentication before reading data or invoking AI',async()=>{const m=mockRequest({allow:false});const r=await handleChai(req(),{...m,key:'fake-gateway'});assert.equal(r.status,401);assert.equal(m.calls.length,1);const r2=await handleChai(req(question,{Authorization:''}),{...m,key:'fake'});assert.equal(r2.status,401);assert.equal(m.calls.length,1);});
 test('chat cannot use a client absent from authenticated RLS results',async()=>{const m=mockRequest({projects:[]});const r=await handleChai(req(),{...m,key:'fake'});assert.equal(r.status,404);assert.ok(!m.calls.some(x=>x.url.includes('ai-gateway')));});
 test('model receives sanitized server context, not tokens or client supplied health',async()=>{const m=mockRequest();const r=await handleChai(req({...question,health:'fake',user_id:'other'}),{...m,key:'gateway-secret'});assert.equal(r.status,200);const call=m.calls.find(c=>c.url.includes('ai-gateway'));assert.ok(call);assert.equal(call.options.headers.Authorization,'Bearer gateway-secret');const payload=JSON.parse(call.options.body);assert.equal(payload.max_tokens,1000);assert.ok(!call.options.body.includes(token));assert.ok(!call.options.body.includes('maria@example.com'));assert.ok(!call.options.body.includes('99999-9999'));assert.equal((await r.json()).mode,'ai');});
+test('360 analysis context includes open work, blockers and next contact',async()=>{const task={id:'t-ai',project_id:project.id,title:'Resolver integração',done:false,critical:true,blocked:true,due_date:'2026-10-01'};const plan={...op,id:'o-ai',dependency:'CS:Atrito',due_date:'2099-10-09',updated_at:'2026-10-07T10:00:00Z'};const m=mockRequest({tasks:[task],operations:[plan]});const r=await handleChai(req({project_id:project.id,messages:[{role:'user',content:'Analise este cliente em 360 graus'}]}),{...m,key:'fake',now:()=>Date.parse('2026-10-07T12:00:00Z')});assert.equal(r.status,200);const call=m.calls.find(c=>c.url.includes('ai-gateway'));const payload=JSON.parse(call.options.body);const context=payload.messages[1].content;assert.match(context,/"openTasks":1/);assert.match(context,/"blockedTasks":1/);assert.match(context,/"nextContact":\{"title":"Reversão"/);});
 test('missing connection and exhausted credits produce honest actionable errors',async()=>{const m=mockRequest();assert.equal((await handleChai(req(),{...m,key:''})).status,503);assert.equal(m.calls.length,1);const b=mockRequest({providerStatus:402});const r=await handleChai(req(),{...b,key:'fake'});assert.equal(r.status,503);assert.equal((await r.json()).code,'credits_required');});
