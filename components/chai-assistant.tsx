@@ -89,7 +89,7 @@ export default function ChaiAssistant({module,demo,token,projects,projectId='',o
   return <aside className={s.chaiPanel+(collapsed?' '+s.chaiCollapsed:'')} aria-label={'Assistente chAI · '+config.label}>
     <div className={s.chaiCompactHead}>
       <div className={s.chaiIdentity}>
-        <img src="/chai-logo.png" alt="chAI"/>
+        <img src="/chai-logo.svg" alt="chAI"/>
         <div><span>{config.eyebrow}</span><strong>{config.label}</strong></div>
       </div>
       <button className={s.chaiToggle} onClick={()=>setCollapsed(v=>!v)} aria-label={collapsed?'Abrir chAI':'Recolher chAI'}>{collapsed?<ChevronUp size={17}/>:<ChevronDown size={17}/>}</button>
