@@ -80,45 +80,68 @@ button.csKpi{cursor:pointer}.csKpi span{font-size:10px;letter-spacing:1.2px;colo
 .pendHint{font-size:12px;color:#a9b6d8;line-height:1.6;margin:12px 0 20px}.pendFocus{display:flex;gap:20px;align-items:center;padding:24px;border:1px solid #7664d5;border-radius:20px;background:linear-gradient(115deg,#222153,#142e50);margin:20px 0}.pendFocus>div{flex:1}.pendFocus h2{font-size:20px;margin:8px 0}.pendFocus p{color:#c0cee5;font-size:13px;line-height:1.6;margin:5px 0}.pendFilters{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:14px}.pendFilters label{font-size:12px;color:#bec9e5;display:grid;gap:7px}.pendLayout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:22px;margin-top:22px;align-items:start}.pendList{display:grid;gap:18px}.pendCard{padding:24px;border:1px solid #334271;border-radius:18px;background:linear-gradient(125deg,#121d40,#101632);min-width:0}.pendCard h2{font-size:19px;margin:14px 0 8px}.pendCardTop{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:12px;color:#abb9d8}.pendFacts{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 0;border-bottom:1px solid #2b3758}.pendFacts dt{font-size:11px;color:#a5b7d7}.pendFacts dd{margin:7px 0 0;font-size:14px}.pendImpact,.pendNext{padding:14px 0;font-size:13px;line-height:1.7;overflow-wrap:anywhere}.pendImpact p,.pendNext p{margin:6px 0;color:#c7d2e7}.pendNext{padding:15px 18px;background:#16314770;border-left:3px solid #30cbd5;border-radius:0 10px 10px 0}.pendNext small{color:#9aaece;font-size:11px}.pendGuide{margin:18px 0;font-size:13px;line-height:1.7;color:#c0cce2}.pendGuide summary,.pendAside summary{cursor:pointer;color:#bda9ff}.pendGuide ol{padding-left:22px}.pendGuide li{margin:8px 0}.pendAside h2{font-size:20px;line-height:1.4}.pendAside p{font-size:13px;color:#b4c3df;line-height:1.7}.pendGuideList{padding-left:20px}.pendGuideList li{padding:8px 0;font-size:14px}.pendGuideList p{margin:6px 0}.pendEditor{margin-top:24px;scroll-margin-top:90px;border-color:#826de0}.pendEditor label{line-height:1.6}.pendEditor small{font-size:11px;color:#acbbda}.pendCheck{grid-column:1/-1;display:flex!important;align-items:center;gap:12px}.pendCheck input{width:18px;height:18px}.pendActions{display:flex;gap:12px;margin-top:22px}.csKpi[aria-pressed=true]{outline:2px solid #aa87ff;outline-offset:2px}.pendCard .link{display:inline-flex;gap:5px;text-align:left}.pendEditor:focus{outline:2px solid #aa87ff;outline-offset:4px}@media(max-width:1100px){.pendLayout{grid-template-columns:1fr}.pendFilters{grid-template-columns:1fr 1fr}.pendFocus{flex-wrap:wrap}}@media(max-width:600px){.pendFilters,.pendFacts{grid-template-columns:1fr}.pendFocus{padding:18px}.pendFocus>svg{display:none}.pendCard{padding:18px}.pendFocus>div{flex-basis:100%}.pendActions{flex-wrap:wrap}}
 
 
-/* Vectta balance pass 2026-10-07 */
-.hero{min-height:270px;padding:28px 34px;grid-template-columns:minmax(0,1.3fr) minmax(210px,.7fr);gap:20px}
-.hero h1{font-size:clamp(36px,4vw,54px)}
-.heroVisual{min-height:210px}
-.heroMascot{width:min(100%,225px);max-height:225px}
-.gaugeGrid{gap:18px;padding:16px 12px}
-.gaugeRing{width:min(100%,160px)}
-.gaugeInner b{font-size:30px}
-.gaugeInner span{max-width:122px;overflow-wrap:anywhere}
-.moduleGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.moduleCard{min-height:98px;padding:14px}
+/* Vectta balance pass 2026-10-07 · v2
+   Home preserva a largura; chAI vira dock compacto e expansível. */
+.hero{min-height:238px;padding:24px 28px;grid-template-columns:minmax(0,1.45fr) minmax(170px,.55fr);gap:18px}
+.hero h1{font-size:clamp(34px,3.7vw,50px);line-height:1.02}
+.heroVisual{min-height:178px}
+.heroMascot{width:min(100%,188px);max-height:188px}
+.gaugeGrid{grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:12px;margin:16px 0 6px;padding:14px 4px}
+.gaugeCard{padding:5px}
+.gaugeCard:not(:last-child):after{right:-6px}
+.gaugeRing{width:min(100%,138px)}
+.gaugeRing:before{inset:9px}
+.gaugeRing:after{bottom:17px}
+.gaugeInner{width:76%;gap:3px}
+.gaugeInner svg{width:16px;height:16px}
+.gaugeInner b{font-size:27px}
+.gaugeInner span{max-width:108px;font-size:8px;line-height:1.22;overflow-wrap:anywhere}
+.gaugeInner small{font-size:8px;line-height:1.2}
+.moduleGrid{grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:11px;margin-top:14px}
+.moduleCard{min-height:88px;padding:13px 14px;gap:10px}
 .moduleCard div,.moduleCard strong,.moduleCard span{min-width:0;overflow-wrap:anywhere}
+.moduleCard strong{font-size:14px}
+.moduleCard span{font-size:11px}
 .chaiPanel,.chaiPanel *{box-sizing:border-box;min-width:0}
+.chaiPanel{border-radius:15px}
 .chaiMessage{max-width:100%}
-.chaiMessage[data-role="user"]{margin-left:14px}
+.chaiMessage[data-role="user"]{margin-left:10px}
 .chaiMessage p{overflow-wrap:anywhere;word-break:normal}
-.chaiSuggestions button{min-height:42px;overflow-wrap:anywhere}
-.chaiComposer>div{align-items:flex-end;flex-wrap:wrap}
-.chaiComposer small{flex:1 1 160px;line-height:1.35}
+.chaiSuggestions{gap:5px;margin:7px 0}
+.chaiSuggestions button{min-height:34px;padding:6px 7px;font-size:8px;overflow-wrap:anywhere}
+.chaiComposer{padding:8px}
+.chaiComposer textarea{min-height:48px;max-height:78px;resize:none}
+.chaiComposer>div{align-items:center;flex-wrap:wrap;margin-top:7px}
+.chaiComposer small{flex:1 1 150px;font-size:9px;line-height:1.3}
 .chaiComposer button{flex:0 0 auto}
+.chaiIntro{margin:7px 0 2px}
+.chaiScope{margin-top:10px;gap:5px}
+.chaiConversation{min-height:82px;max-height:148px}
+.chaiIdentity img{width:50px}
+
 @media(min-width:1151px){
- .contextPageGrid,.csLayout{grid-template-columns:minmax(0,1fr) minmax(340px,380px);gap:22px}
- .chaiPanel{top:84px;max-height:500px;padding:13px 14px}
- .chaiIdentity img{width:56px}
- .chaiConversation{min-height:96px;max-height:175px}
- .chaiComposer textarea{min-height:68px;max-height:92px}
+ .contextPageGrid{display:block}
+ .contextPageGrid>.chaiPanel{position:fixed;top:auto;right:24px;bottom:24px;width:318px;max-height:410px;z-index:45;padding:11px 12px;box-shadow:0 18px 52px rgba(0,0,0,.42)}
+ .contextPageGrid>.chaiCollapsed{width:286px;max-height:58px;padding:9px 11px}
+ .contextPageGrid>.chaiCollapsed .chaiIdentity img{width:46px}
+ .csLayout{grid-template-columns:minmax(0,1fr) minmax(286px,312px);gap:16px}
+ .csLayout>.chaiPanel{position:sticky;top:82px;width:auto;max-height:425px;padding:11px 12px}
+ .csLayout>.chaiCollapsed{max-height:58px}
 }
 @media(max-width:1150px){
- .moduleGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
- .hero{grid-template-columns:minmax(0,1fr) minmax(190px,.62fr)}
- .heroMascot{width:min(100%,205px);max-height:210px}
+ .moduleGrid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+ .hero{grid-template-columns:minmax(0,1fr) minmax(155px,.48fr);padding:22px 24px}
+ .heroMascot{width:min(100%,170px);max-height:175px}
+ .gaugeGrid{grid-template-columns:repeat(auto-fit,minmax(125px,1fr))}
 }
 @media(max-width:760px){
  .moduleGrid{grid-template-columns:1fr}
- .hero{grid-template-columns:1fr;padding:22px 18px 16px;gap:10px}
- .heroVisual{min-height:165px}
- .heroMascot{width:min(100%,185px);max-height:185px}
- .gaugeGrid{gap:8px;padding:12px 0}
- .gaugeRing{width:min(100%,142px)}
+ .hero{grid-template-columns:1fr;padding:20px 17px 14px;gap:8px}
+ .heroVisual{min-height:145px}
+ .heroMascot{width:min(100%,155px);max-height:155px}
+ .gaugeGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:10px 0}
+ .gaugeRing{width:min(100%,126px)}
+ .gaugeCard:nth-child(2):after{display:none}
  .chaiComposer>div{align-items:stretch}
  .chaiComposer button{width:100%;justify-content:center}
 }
