@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {registerHooks} from 'node:module';
 registerHooks({resolve(specifier,context,next){return next(specifier.startsWith('.')&&!/\.[a-z]+$/.test(specifier)?specifier+'.ts':specifier,context);}});
-const {assessCS,portfolioCS,inferCSCategory,buildCSDraft,csCategory,isCSPlan}=await import('../lib/customer-success.ts');
+const {assessCS,portfolioCS,inferCSCategory,buildCSDraft,csCategory,isCSPlan,summarizeCS}=await import('../lib/customer-success.ts');
 const {handleChai,parseChatRequest}=await import('../lib/chai-assistant.ts');
 const project={id:'11111111-1111-4111-8111-111111111111',client:'Cliente teste',owner:'Analista',phase:'Acompanhamento',due_date:null,manual_risk_level:'Baixo'};
 const base={projects:[project],tasks:[],feedbacks:[],operations:[]};
@@ -24,6 +24,15 @@ test('AI draft has category priority and a reviewable follow-up date',()=>{
   assert.equal(csCategory(draft),'Reversão');
   assert.ok(isCSPlan(draft));
   assert.match(draft.title,/Reversão/);
+});
+test('saved AI plan immediately changes the CS summary used by KPIs',()=>{
+  const before=summarizeCS(base,'2026-10-07');
+  assert.equal(before.reversalsOpen,0);
+  const draft=buildCSDraft(project,'Analista','Plano de reversão.','Reversão','2026-10-07');
+  const after=summarizeCS({...base,operations:[draft]},'2026-10-07');
+  assert.equal(after.reversalsOpen,1);
+  assert.equal(after.activePlans.length,1);
+  assert.equal(after.attention,1);
 });
 test('missing data does not become a healthy score',()=>{const x=assessCS(project,base,'2026-10-06');assert.equal(x.score,null);assert.equal(x.level,'Sem dados');assert.ok(x.gaps.length);});
 test('risk, feedback and open reversal produce explainable score',()=>{const p={...project,manual_risk_level:'Alto'};const x=assessCS(p,{...base,feedbacks:[feedback],operations:[op]},'2026-10-06');assert.equal(x.score,5);assert.equal(x.level,'Crítico');assert.equal(x.signals.length,3);});
