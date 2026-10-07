@@ -57,7 +57,7 @@ export default function ChaiAssistant({module,demo,token,projects,projectId='',o
     setMessages(m=>[...m,entry]);setQuestion('');setError('');setCollapsed(false);
     requestLock.current=true;setAsking(true);
     const controller=new AbortController();abortRef.current=controller;
-    const timeout=window.setTimeout(()=>controller.abort(),55000);
+    const timeout=window.setTimeout(()=>controller.abort(),32000);
     try{
       const response=await fetch('/api/chai',{
         method:'POST',
@@ -65,11 +65,11 @@ export default function ChaiAssistant({module,demo,token,projects,projectId='',o
         signal:controller.signal,
         body:JSON.stringify({demo,module,project_id:targetProject,messages:history.map(({role,content})=>({role,content}))})
       });
-      const result=await response.json() as {answer?:string;message?:string};
+      const result=await response.json() as {answer?:string;message?:string;mode?:string};
       if(!response.ok||!result.answer)throw new Error(result.message||'A chAI não conseguiu responder agora.');
       setMessages(m=>[...m,{role:'assistant',content:result.answer!,scope:targetScope}]);
     }catch(e){
-      setError(e instanceof Error&&e.name!=='AbortError'?e.message:'A resposta demorou mais que o esperado. Tente novamente.');
+      setError(e instanceof Error&&e.name!=='AbortError'?e.message:'A chAI não respondeu a tempo. Tente novamente.');
     }finally{
       window.clearTimeout(timeout);abortRef.current=null;requestLock.current=false;setAsking(false);
     }
