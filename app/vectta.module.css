@@ -526,3 +526,54 @@ button.csKpi:hover{
     max-width:100%;
   }
 }
+
+/* Pending list pagination 2026-10-07 */
+.pendPagination{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:16px 18px;
+  border:1px solid rgba(93,109,190,.46);
+  border-radius:14px;
+  background:linear-gradient(145deg,rgba(11,20,66,.82),rgba(7,16,58,.9));
+}
+.pendPagination>div:first-child{
+  min-width:0;
+  display:grid;
+  gap:4px;
+}
+.pendPagination strong{
+  font-size:12px;
+  color:#f3f5ff;
+}
+.pendPagination span{
+  font-size:10px;
+  color:var(--muted);
+  line-height:1.4;
+}
+.pendPagination>div:last-child{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.pendEditor{
+  margin:16px 0 22px;
+  scroll-margin-top:82px;
+}
+@media(max-width:600px){
+  .pendPagination{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .pendPagination>div:last-child{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .pendPagination .btn{
+    width:100%;
+    justify-content:center;
+  }
+}
