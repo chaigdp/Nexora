@@ -18,7 +18,7 @@ const SUPA='https://pldxmxgrgyfwtnhxqaji.supabase.co';
 const KEY='sb_publishable_jYHHJD8SzmFb2cuJvRcPIQ_Gt-0yTYC';
 const VT='/vectta-vt-mark-v2.svg';
 const MASCOT='https://588b1eb0-7217-4ce5-a0c1-281504d2838d.sandbox.floot.app/_cdn/static/fe3b931e-e202-4799-b08a-f388c75ed8ac-chai-mascot-official.png';
-const HOME_MASCOT='/home-mascot.svg';
+const HOME_MASCOT='/chai-home-dashboard.webp';
 const CHAI='/chai-logo.svg';
 
 type Risk='Baixo'|'Médio'|'Alto';
