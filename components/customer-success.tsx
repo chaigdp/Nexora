@@ -83,6 +83,7 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
         {current&&<section className={s.dashboardCard}>
           <div className={s.dashboardTitle}><div><span className={s.eyebrow}>CLIENTE EM FOCO</span><h2>{current.project.client}</h2></div><button className={s.link} onClick={()=>onOpen(current.project.id)}>Abrir implantação</button></div>
           <div className={s.csSignals}>{current.signals.map(signal=><div key={signal.reason}><span>{signal.source}</span><strong>{signal.reason}</strong><small>−{signal.points} pontos</small></div>)}{!current.signals.length&&<p>Não há alerta nas regras atuais. Confirme a percepção do cliente no próximo contato.</p>}</div>
+          {current.latest&&<div className={s.csSignals}><div><span>VOZ DO CLIENTE · {date(current.latest.created_at.slice(0,10))}</span><strong>{current.latest.comment||'Avaliação registrada sem comentário.'}</strong><small>CSAT {current.latest.csat??'—'} · NPS {current.latest.nps??'—'} · CES {current.latest.ces??'—'}</small></div></div>}
           {current.gaps.length>0&&<p className={s.csMissing}>Informações a completar: {current.gaps.join(' · ')}.</p>}
           <div className={s.csNext}><Target size={20}/><div><strong>Próxima ação sugerida por regras</strong><p>{current.nextAction}</p></div></div>
           <button className={s.btn+' '+s.primary} onClick={()=>createPlan(current.project.id)}>Transformar em acompanhamento</button>
