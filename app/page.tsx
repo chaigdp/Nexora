@@ -10,6 +10,8 @@ import PendingWorkspace from '../components/pending-workspace';
 import type {PendingTask} from '../lib/pending-strategy';
 import WhatsAppTestLab from '../components/whatsapp-test-lab';
 import CustomerSuccess from '../components/customer-success';
+import ChaiAssistant from '../components/chai-assistant';
+import type {ChaiModule} from '../lib/chai-modules';
 import type {CSOperation} from '../lib/customer-success';
 
 const SUPA='https://pldxmxgrgyfwtnhxqaji.supabase.co';
@@ -525,6 +527,22 @@ export default function Page(){
  else if(view==='Segurança')body=<><header className={s.pageHead}><div><span className={s.eyebrow}>SEGURANÇA</span><h1>Proteja sua conta.</h1><p>Autenticação e dados são mantidos no Supabase com RLS.</p></div></header><section className={s.panel}><h2>Proteções ativas</h2><div className={s.stack}><div className={s.operation}><ShieldCheck size={18}/><div><strong>Carteira isolada por usuário</strong><span>RLS impede uma conta de ler os dados de outra.</span></div></div><div className={s.operation}><KeyRound size={18}/><div><strong>Recuperação de senha</strong><span>Use “Esqueci minha senha” na tela de login.</span></div></div></div></section></>;
  else body=<><header className={s.pageHead}><div><span className={s.eyebrow}>{view.toUpperCase()}</span><h1>{view}</h1><p>Registros operacionais com responsável, evidência e status.</p></div></header><section className={s.panel}><div className={s.empty}>Módulo preparado para os registros reais da implantação.</div></section></>;
 
+
+ const chaiModuleByView:Partial<Record<string,ChaiModule>>={
+  'Início':'inicio',
+  'Visão geral':'inicio',
+  'Implantações':'implantacoes',
+  'Feedbacks':'feedbacks',
+  'Riscos e estratégias':'riscos',
+  'Testes':'testes',
+  'Rentabilidade':'rentabilidade'
+ };
+ const contextualModule:ChaiModule|undefined=current?'implantacoes':chaiModuleByView[view];
+ const showContextualChai=Boolean(contextualModule)&&view!=='Acompanhamento de CS';
+ const pageBody=showContextualChai&&contextualModule
+  ?<div className={s.contextPageGrid}><div className={s.contextPageBody}>{body}</div><ChaiAssistant module={contextualModule} demo={demo} token={session?.access_token||''} projects={projects.map(p=>({id:p.id,client:p.client}))} projectId={current?.id||''}/></div>
+  :body;
+
  return <div className={s.shell}>
   <aside className={s.sidebar+(mobile?' '+s.open:'')}>
    <div className={s.brandRow}><img className={s.vt} src={VT} alt="VT"/><div className={s.brandName}>Vectta</div></div>
@@ -532,7 +550,7 @@ export default function Page(){
    <nav className={s.nav}>{nav.map(([label,Icon])=><button key={label} className={view===label&&!selected?s.active:''} onClick={()=>changeView(label)}><Icon size={18}/><span>{label}</span>{label==='Pendências'&&<i>{pending.length}</i>}</button>)}</nav>
    <div className={s.sideBottom}><button className={s.profile} onClick={()=>changeView('Meu perfil')}>{profile?.avatar_url?<img className={s.avatarImg} src={profile.avatar_url} alt="Perfil"/>:<div className={s.avatar}>{displayName[0]?.toUpperCase()}</div>}<div><strong>{displayName}</strong><span>{demo?'Demonstração isolada':profile?.workspace_name||'Carteira pessoal'}</span></div></button></div>
   </aside>
-  <div className={s.main}><header className={s.topbar}><div className={s.topbarStart}><button className={s.btn+' '+s.ghost} onClick={()=>setMobile(!mobile)}><Menu size={18}/></button>{(selected||view!=='Início')&&<button className={s.backBtn} onClick={goBack}>← Voltar</button>}<span>Vectta <i>/</i> {current?.client||view}</span></div><div className={s.secure}><ShieldCheck size={16}/>{demo?'demonstração · dados fictícios':'ambiente seguro'}<button className={s.btn+' '+s.ghost} onClick={logout}>{demo?<><KeyRound size={15}/> Entrar na minha conta</>:<><LogOut size={15}/> Sair</>}</button></div></header><main className={s.content}>{error&&<div className={s.error}>{error}</div>}{notice&&<div className={s.notice}>{notice}</div>}{body}<footer className={s.footer}><span>Vectta · Portal de implementação</span></footer><div className={s.brandFooter}><img className={s.mainChaiSignature} src={CHAI} alt="chAI · Conversas que movem, relações que ficam"/></div></main></div>
+  <div className={s.main}><header className={s.topbar}><div className={s.topbarStart}><button className={s.btn+' '+s.ghost} onClick={()=>setMobile(!mobile)}><Menu size={18}/></button>{(selected||view!=='Início')&&<button className={s.backBtn} onClick={goBack}>← Voltar</button>}<span>Vectta <i>/</i> {current?.client||view}</span></div><div className={s.secure}><ShieldCheck size={16}/>{demo?'demonstração · dados fictícios':'ambiente seguro'}<button className={s.btn+' '+s.ghost} onClick={logout}>{demo?<><KeyRound size={15}/> Entrar na minha conta</>:<><LogOut size={15}/> Sair</>}</button></div></header><main className={s.content}>{error&&<div className={s.error}>{error}</div>}{notice&&<div className={s.notice}>{notice}</div>}{pageBody}<footer className={s.footer}><span>Vectta · Portal de implementação</span></footer><div className={s.brandFooter}><img className={s.mainChaiSignature} src={CHAI} alt="chAI · Conversas que movem, relações que ficam"/></div></main></div>
   {modal&&<div className={s.modalBack}><div className={s.modal}><div className={s.modalHead}><h2>Nova implantação</h2><button className={s.btn+' '+s.ghost} onClick={()=>setModal(false)}><X size={18}/></button></div><div className={s.form}><label>Cliente<input className={s.input} value={form.client} onChange={e=>setForm({...form,client:e.target.value})}/></label><label>Sistema<input className={s.input} value={form.system} onChange={e=>setForm({...form,system:e.target.value})}/></label><label>Segmento<input className={s.input} value={form.segment} onChange={e=>setForm({...form,segment:e.target.value})}/></label><label>CNPJ<input className={s.input} value={form.cnpj} onChange={e=>setForm({...form,cnpj:e.target.value})} placeholder="00.000.000/0000-00"/></label><label>Contato principal<input className={s.input} value={form.contact_name} onChange={e=>setForm({...form,contact_name:e.target.value})}/></label><label>E-mail do contato<input className={s.input} type="email" value={form.contact_email} onChange={e=>setForm({...form,contact_email:e.target.value})}/></label><label>Celular do contato<input className={s.input} value={form.contact_phone} onChange={e=>setForm({...form,contact_phone:e.target.value})}/></label><label>Canal preferido<select className={s.input} value={form.preferred_channel} onChange={e=>setForm({...form,preferred_channel:e.target.value})}><option>WhatsApp</option><option>E-mail</option><option>SMS</option><option>Ligação</option></select></label><label className={s.checkLabel}><input type="checkbox" checked={form.message_opt_in} onChange={e=>setForm({...form,message_opt_in:e.target.checked})}/><span>Cliente autorizou comunicações e campanhas</span></label><label>Responsável<input className={s.input} value={form.owner} onChange={e=>setForm({...form,owner:e.target.value})}/></label><label>Etapa<select className={s.input} value={form.phase} onChange={e=>setForm({...form,phase:e.target.value})}>{phases.map(x=><option key={x}>{x}</option>)}</select></label><label>Prazo<input className={s.input} type="date" value={form.due} onChange={e=>setForm({...form,due:e.target.value})}/></label><label className={s.full}>Escopo<textarea className={s.textarea} value={form.scope} onChange={e=>setForm({...form,scope:e.target.value})}/></label><label>Receita<input className={s.input} type="number" value={form.revenue} onChange={e=>setForm({...form,revenue:e.target.value})}/></label></div><div className={s.modalFoot}><button className={s.btn} onClick={()=>setModal(false)}>Cancelar</button><button className={s.btn+' '+s.primary} disabled={busy} onClick={createProject}>Criar implantação</button></div></div></div>}
  </div>;
 }
