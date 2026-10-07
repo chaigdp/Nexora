@@ -20,6 +20,38 @@ function localStrategicAnswer(module:ChaiModule,data:CSData,ranked:ReturnType<ty
   const tests=data.operations.filter(o=>o.kind==='Teste');
   const feedbacks=data.feedbacks.filter(f=>Number.isFinite(Date.parse(f.created_at)));
   const intro=current?'Para '+current.project.client+':':'Leitura da carteira:';
+  const q=question.toLocaleLowerCase('pt-BR');
+  const priorityClients=ranked.filter(x=>x.level==='Crítico'||x.level==='Atenção').slice(0,4);
+  const clientName=(projectId:string)=>data.projects.find(p=>p.id===projectId)?.client||'Cliente não identificado';
+
+  if((module==='inicio'||module==='implantacoes')&&/(prioriz|atenção|atencao|gargalo|ação agora|acao agora|atrasad)/i.test(q)&&priorityClients.length){
+    const list=priorityClients.map((x,i)=>{
+      const why=x.signals[0]?.reason||x.gaps[0]||x.nextAction;
+      return (i+1)+'. '+x.project.client+' · '+x.level+' · '+why;
+    }).join('\n');
+    return 'Prioridade agora:\n'+list+'\n\nComece pelo primeiro cliente, valide o bloqueio ou atraso e registre responsável, prazo e evidência do próximo passo.';
+  }
+  if(module==='cs'&&current&&/(plano|7 dias|próximo|proximo|melhorar|revers)/i.test(q)){
+    const view=client360(current.project.id,data);
+    const firstSignal=current.signals[0]?.reason||current.gaps[0]||'sem alerta forte registrado';
+    const next=view?.nextContact?view.nextContact.title+' até '+view.nextContact.due_date:current.nextAction;
+    return 'Plano recomendado para '+current.project.client+':\n1. Confirmar o sinal principal: '+firstSignal+'.\n2. Resolver primeiro pendências bloqueadas ou atrasadas.\n3. Fazer o próximo contato: '+next+'.\n4. Registrar evidência do retorno e critério objetivo de recuperação.\n5. Reavaliar a saúde após a ação, sem assumir satisfação apenas pela ausência de alertas.';
+  }
+  if(module==='feedbacks'&&/(insatis|detrator|negativ|quem)/i.test(q)){
+    const negative=feedbacks.filter(f=>(f.nps!==null&&f.nps<=6)||(f.csat!==null&&f.csat<=2)).slice(0,5);
+    if(negative.length){
+      return 'Feedbacks que merecem atenção:\n'+negative.map((f,i)=>(i+1)+'. '+clientName(f.project_id)+' · '+(f.nps!==null?'NPS '+f.nps:'CSAT '+f.csat)+' · '+redact(f.comment||'Sem comentário').slice(0,180)).join('\n')+'\n\nUse esses registros como sinal para investigação, não como causa raiz confirmada.';
+    }
+  }
+  if(module==='riscos'&&/(imediat|principais|quais riscos|prioriz)/i.test(q)&&priorityClients.length){
+    return 'Riscos prioritários:\n'+priorityClients.map((x,i)=>(i+1)+'. '+x.project.client+' · '+x.level+' · '+(x.signals[0]?.reason||x.gaps[0]||'validar evidências')).join('\n')+'\n\nPara cada um: confirme evidência, defina contenção, responsável, prazo e critério de saída.';
+  }
+  if(module==='testes'&&/(reprov|crític|critic|falta|validar)/i.test(q)){
+    const criticalTests=tests.filter(t=>t.status==='Reprovado'||!t.evidence?.trim()).slice(0,6);
+    if(criticalTests.length){
+      return 'Testes que pedem atenção:\n'+criticalTests.map((t,i)=>(i+1)+'. '+clientName(t.project_id)+' · '+t.title+' · '+t.status+(t.evidence?.trim()?'':' · sem evidência')).join('\n')+'\n\nAntes da liberação, priorize reteste e evidência dos itens críticos.';
+    }
+  }
   if(module==='cs'){
     if(current){
       const view=client360(current.project.id,data);
