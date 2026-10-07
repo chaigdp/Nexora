@@ -123,7 +123,7 @@ export function client360(projectId:string,data:CSData,date=csToday()) {
   const tasks=data.tasks.filter(t=>t.project_id===projectId);
   const openTasks=tasks.filter(t=>!t.done);
   const blocked=openTasks.filter(t=>t.blocked);
-  const late=openTasks.filter(t=>!!t.due_date&&t.due_date!>=date);
+  const late=openTasks.filter(t=>!!t.due_date&&t.due_date<date);
   const plans=data.operations.filter(o=>o.project_id===projectId&&isCSPlan(o));
   const activePlans=plans.filter(p=>!closed(p.status));
   const upcoming=activePlans.filter(p=>!!p.due_date&&p.due_date>=date).sort((a,b)=>(a.due_date||'9999').localeCompare(b.due_date||'9999'))[0]||null;
