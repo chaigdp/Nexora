@@ -25,7 +25,7 @@ export default function ChaiAssistant({module,demo,token,projects,projectId='',o
   const [question,setQuestion]=useState('');
   const [asking,setAsking]=useState(false);
   const [error,setError]=useState('');
-  const [collapsed,setCollapsed]=useState(false);
+  const [collapsed,setCollapsed]=useState(true);
   const requestLock=useRef(false);
   const abortRef=useRef<AbortController|null>(null);
   const endRef=useRef<HTMLDivElement>(null);
@@ -40,7 +40,7 @@ export default function ChaiAssistant({module,demo,token,projects,projectId='',o
   useEffect(()=>{
     if(typeof window==='undefined')return;
     const media=window.matchMedia('(max-width: 700px)');
-    const update=()=>setCollapsed(media.matches);
+    const update=()=>{if(media.matches)setCollapsed(true);};
     update();media.addEventListener('change',update);
     return()=>media.removeEventListener('change',update);
   },[]);
@@ -116,8 +116,8 @@ export default function ChaiAssistant({module,demo,token,projects,projectId='',o
       {error&&<div className={s.labError} role="alert">{error}</div>}
       <div className={s.chaiSuggestions}>{config.suggestions.map(q=><button key={q} disabled={asking||!projects.length} onClick={()=>void ask(q)}>{q}</button>)}</div>
       <form className={s.chaiComposer} onSubmit={e=>{e.preventDefault();void ask();}}>
-        <textarea aria-label="Pergunte à chAI" value={question} onChange={e=>setQuestion(e.target.value)} maxLength={2000} placeholder={config.placeholder} disabled={asking}/>
-        <div><small>Nenhuma ação é executada automaticamente.</small><button className={s.btn+' '+s.primary} type="submit" disabled={asking||!question.trim()}><Send size={14}/>Perguntar</button></div>
+        <textarea aria-label="Pergunte à chAI" value={question} onChange={e=>setQuestion(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();if(!asking&&question.trim())void ask();}}} maxLength={2000} placeholder={config.placeholder} disabled={asking}/>
+        <div><small>Enter envia · Shift + Enter cria nova linha.</small><button className={s.btn+' '+s.primary} type="submit" disabled={asking||!question.trim()}><Send size={14}/>Perguntar</button></div>
       </form>
     </>}
   </aside>;
