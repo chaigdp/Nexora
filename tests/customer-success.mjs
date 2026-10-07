@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {registerHooks} from 'node:module';
 registerHooks({resolve(specifier,context,next){return next(specifier.startsWith('.')&&!/\.[a-z]+$/.test(specifier)?specifier+'.ts':specifier,context);}});
-const {assessCS,portfolioCS,inferCSCategory,buildCSDraft,csCategory,isCSPlan,summarizeCS}=await import('../lib/customer-success.ts');
+const {assessCS,portfolioCS,inferCSCategory,buildCSDraft,csCategory,isCSPlan,summarizeCS,client360}=await import('../lib/customer-success.ts');
 const {handleChai,parseChatRequest}=await import('../lib/chai-assistant.ts');
 const project={id:'11111111-1111-4111-8111-111111111111',client:'Cliente teste',owner:'Analista',phase:'Acompanhamento',due_date:null,manual_risk_level:'Baixo'};
 const base={projects:[project],tasks:[],feedbacks:[],operations:[]};
@@ -33,6 +33,18 @@ test('saved AI plan immediately changes the CS summary used by KPIs',()=>{
   assert.equal(after.reversalsOpen,1);
   assert.equal(after.activePlans.length,1);
   assert.equal(after.attention,1);
+});
+test('client 360 combines health, open work, next contact and relationship history',()=>{
+  const draft={...buildCSDraft(project,'Analista','Ouvir e retornar.','Atrito','2026-10-07'),id:'p1',updated_at:'2026-10-07T14:00:00Z'};
+  const task={id:'t1',project_id:project.id,done:false,critical:true,blocked:true,due_date:'2026-10-06',title:'Resolver bloqueio'};
+  const view=client360(project.id,{...base,tasks:[task],feedbacks:[feedback],operations:[draft]},'2026-10-07');
+  assert.ok(view);
+  assert.equal(view.blockedCount,1);
+  assert.equal(view.lateCount,1);
+  assert.equal(view.activePlans.length,1);
+  assert.equal(view.nextContact?.id,'p1');
+  assert.equal(view.timeline.length,2);
+  assert.equal(view.timeline[0].type,'plan');
 });
 test('missing data does not become a healthy score',()=>{const x=assessCS(project,base,'2026-10-06');assert.equal(x.score,null);assert.equal(x.level,'Sem dados');assert.ok(x.gaps.length);});
 test('risk, feedback and open reversal produce explainable score',()=>{const p={...project,manual_risk_level:'Alto'};const x=assessCS(p,{...base,feedbacks:[feedback],operations:[op]},'2026-10-06');assert.equal(x.score,5);assert.equal(x.level,'Crítico');assert.equal(x.signals.length,3);});
