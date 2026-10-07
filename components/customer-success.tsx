@@ -55,7 +55,7 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
   function chooseClient(id:string){setSelected(id);setMessages([]);setChatError('');}
   return <>
     <header className={s.pageHead}><div><span className={s.eyebrow}>SUCESSO DO CLIENTE</span><h1>Cuidar da relação. Sustentar o resultado.</h1><p>Saúde da carteira, atritos e reversões com próximos passos claros.</p></div><button className={s.btn+' '+s.primary} disabled={!data.projects.length} onClick={()=>createPlan()}><Plus size={17}/>Novo acompanhamento</button></header>
-    {demo&&<p className={s.csDemo}>Demonstração com dados fictícios. Os planos ficam apenas nesta sessão e as respostas demonstrativas são geradas por regras.</p>}
+    {demo&&<p className={s.csDemo}>Demonstração com dados fictícios. Os planos ficam apenas nesta sessão e a chAI usa IA real sobre essa base fictícia.</p>}
     <section className={s.csKpis} aria-label="Indicadores de sucesso do cliente">
       <button onClick={()=>{setTier('Alta');setFilter('Todos')}} className={s.csKpi}><span>CARTEIRA ALTA</span><b>{highPortfolio.length}</b><small>contas estratégicas de maior valor</small></button>
       <button onClick={()=>{setTier('Todos');setFilter('Crítico')}} className={s.csKpi}><span>PRECISAM DE AÇÃO</span><b>{portfolio.filter(x=>x.level==='Crítico').length}</b><small>clientes em situação crítica</small></button>
