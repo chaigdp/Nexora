@@ -10,6 +10,44 @@ export const isCSPlan = (op:CSOperation) => op.dependency?.startsWith('CS:') ===
 export const csCategory = (op:CSOperation) => op.dependency?.slice(3) || 'Acompanhamento';
 export const csToday = () => new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 
+export type CSCategory = typeof csCategories[number];
+
+const normalizeCSIntent=(text:string)=>text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
+
+export function inferCSCategory(text:string):CSCategory {
+  const value=normalizeCSIntent(text);
+  if(/\b(reversao|cancelamento|cancelar|churn|retencao|reter|saida)\b/.test(value))return 'Reversão';
+  if(/\b(atrito|insatisfacao|reclamacao|reclamar|frustracao|conflito|escalonamento)\b/.test(value))return 'Atrito';
+  if(/\b(adocao|ativacao|engajamento|uso|treinamento|onboarding)\b/.test(value))return 'Adoção';
+  if(/\b(expansao|upsell|cross[ -]?sell|upgrade|ampliar|oportunidade)\b/.test(value))return 'Expansão';
+  return 'Acompanhamento';
+}
+
+export function csDateAfter(days:number,date=csToday()) {
+  const value=new Date(date+'T12:00:00Z');
+  value.setUTCDate(value.getUTCDate()+days);
+  return value.toISOString().slice(0,10);
+}
+
+export function buildCSDraft(project:CSProject,owner:string,strategy:string,category:CSCategory='Acompanhamento',date=csToday()):CSOperation {
+  const followUpDays=category==='Reversão'?2:category==='Atrito'?3:category==='Adoção'||category==='Expansão'?7:5;
+  return {
+    id:'',
+    project_id:project.id,
+    kind:category==='Reversão'||category==='Atrito'?'Risco':'Processo',
+    title:category==='Acompanhamento'?'Acompanhamento de '+project.client:category+' · '+project.client,
+    owner:project.owner||owner,
+    due_date:csDateAfter(followUpDays,date),
+    status:'Aberto',
+    priority:category==='Reversão'||category==='Atrito'?'Alta':'Normal',
+    detail:'',
+    strategy:strategy.slice(0,2000),
+    evidence:'',
+    progress:0,
+    dependency:'CS:'+category
+  };
+}
+
 export function assessCS(project:CSProject,data:CSData,date=csToday()) {
   const tasks=data.tasks.filter(t=>t.project_id===project.id), ops=data.operations.filter(o=>o.project_id===project.id);
   const feedbacks=data.feedbacks.filter(f=>f.project_id===project.id&&Number.isFinite(Date.parse(f.created_at))).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at));
