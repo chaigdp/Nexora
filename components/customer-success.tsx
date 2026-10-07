@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {ArrowUpRight,CheckCircle2,HeartPulse,MessageCircle,Plus,Send,Sparkles,Target,X} from 'lucide-react';
-import {buildCSDraft,closed,csCategories,csCategory,csStatuses,inferCSCategory,summarizeCS,type CSData,type CSOperation} from '../lib/customer-success';
+import {buildCSDraft,closed,csCategories,csCategory,csStatuses,csToday,inferCSCategory,summarizeCS,type CSData,type CSOperation} from '../lib/customer-success';
 import s from '../app/vectta.module.css';
 
 type Props={data:CSData;demo:boolean;token:string;owner:string;onSave:(plan:CSOperation)=>Promise<void>;onOpen:(id:string)=>void};
@@ -105,7 +105,7 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
         <section className={s.dashboardCard}>
           <div className={s.dashboardTitle}><div><h2>Planos e próximos contatos</h2><p>{selected?scope:'Toda a carteira'} · {scopedPlans.length} registros</p></div>{selected&&<button className={s.link} disabled={asking} onClick={()=>chooseClient('')}>Ver todos</button>}</div>
           <div className={s.csPlans}>{scopedPlans.map(p=><article key={p.id} className={s.csPlan}>
-            <div><span className={s.badge}>{csCategory(p)}</span><span>{p.status}</span></div><h3>{p.title}</h3><small>{data.projects.find(x=>x.id===p.project_id)?.client} · {p.owner}</small><p>{p.strategy}</p><div><span className={!closed(p.status)&&p.due_date&&p.due_date<new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())?s.csOverdue:''}>Próximo contato: {date(p.due_date)}</span><button className={s.link} onClick={()=>{setDraft(p);setSaveError('');}}>Atualizar</button></div>{p.evidence&&<details><summary>Histórico e resultado</summary><p>{p.evidence}</p></details>}
+            <div><span className={s.badge}>{csCategory(p)}</span><span>{p.status}</span></div><h3>{p.title}</h3><small>{data.projects.find(x=>x.id===p.project_id)?.client} · {p.owner}</small><p>{p.strategy}</p><div><span className={!closed(p.status)&&p.due_date&&p.due_date<csToday()?s.csOverdue:''}>Próximo contato: {date(p.due_date)}</span><button className={s.link} onClick={()=>{setDraft(p);setSaveError('');}}>Atualizar</button></div>{p.evidence&&<details><summary>Histórico e resultado</summary><p>{p.evidence}</p></details>}
           </article>)}</div>{!scopedPlans.length&&<div className={s.empty}>Crie um acompanhamento para organizar ações, prazos e retornos.</div>}
         </section>
       </div>
