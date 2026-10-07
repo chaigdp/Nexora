@@ -14,8 +14,8 @@ import ChaiAssistant from '../components/chai-assistant';
 import type {ChaiModule} from '../lib/chai-modules';
 import type {CSOperation} from '../lib/customer-success';
 
-const SUPA='https://pldxmxgrgyfwtnhxqaji.supabase.co';
-const KEY='sb_publishable_jYHHJD8SzmFb2cuJvRcPIQ_Gt-0yTYC';
+const SUPA=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://pldxmxgrgyfwtnhxqaji.supabase.co';
+const KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publishable_jYHHJD8SzmFb2cuJvRcPIQ_Gt-0yTYC';
 const VT='/vectta-vt-mark-v2.svg';
 const MASCOT='https://588b1eb0-7217-4ce5-a0c1-281504d2838d.sandbox.floot.app/_cdn/static/fe3b931e-e202-4799-b08a-f388c75ed8ac-chai-mascot-official.png';
 const HOME_MASCOT='/chai-home-dashboard.webp';
@@ -113,6 +113,9 @@ export default function Page(){
  const [email,setEmail]=useState('');
  const [password,setPassword]=useState('');
  const [name,setName]=useState('');
+ const [recoveryToken,setRecoveryToken]=useState('');
+ const [recoveryPassword,setRecoveryPassword]=useState('');
+ const [recoveryConfirm,setRecoveryConfirm]=useState('');
  const [busy,setBusy]=useState(false);
  const [modal,setModal]=useState(false);
  const [showTrail,setShowTrail]=useState(false);
@@ -129,7 +132,27 @@ export default function Page(){
  useEffect(()=>{if(session&&!demo)void load()},[session,demo]);
  useEffect(()=>{if(!session||demo)return;const id=setInterval(()=>void load(),30000);return()=>clearInterval(id)},[session?.access_token,demo]);
  useEffect(()=>{setShowTrail(false);setTrailFocus('')},[selected]);
- useEffect(()=>{if(typeof window==='undefined')return;const h=new URLSearchParams(window.location.hash.slice(1));const access=h.get('access_token'),refresh=h.get('refresh_token');if(!access)return;fetch(SUPA+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+access}}).then(r=>r.json()).then((user:any)=>{if(user?.id){const next:Session={access_token:access,refresh_token:refresh||undefined,user};setSession(next);localStorage.setItem('vectta.session',JSON.stringify(next));history.replaceState(null,'',location.pathname+location.search)}}).catch(()=>{})},[]);
+ useEffect(()=>{
+  if(typeof window==='undefined')return;
+  const h=new URLSearchParams(window.location.hash.slice(1));
+  const access=h.get('access_token'),refresh=h.get('refresh_token'),type=h.get('type'),authError=h.get('error_description');
+  if(authError){setError(authError);return;}
+  if(!access)return;
+  fetch(SUPA+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+access}})
+   .then(r=>r.json())
+   .then((user:any)=>{
+    if(!user?.id)return;
+    if(type==='recovery'){
+     localStorage.removeItem('vectta.session');
+     setSession(null);setDemo(false);setRecoveryToken(access);setEmail(user.email||'');
+     return;
+    }
+    const next:Session={access_token:access,refresh_token:refresh||undefined,user};
+    setSession(next);localStorage.setItem('vectta.session',JSON.stringify(next));
+    history.replaceState(null,'',location.pathname+location.search);
+   })
+   .catch(()=>setError('Não foi possível validar este link de acesso.'));
+ },[]);
 
  async function auth(path:string,body:any){
   const r=await fetch(SUPA+'/auth/v1/'+path,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -159,6 +182,24 @@ export default function Page(){
     setSession(j);localStorage.setItem('vectta.session',JSON.stringify(j));
    }
   }catch(e){setError(e instanceof Error?e.message:'Falha na autenticação.')}finally{setBusy(false)}
+ }
+ async function resetRecoveredPassword(e:React.FormEvent){
+  e.preventDefault();setError('');setNotice('');
+  if(!recoveryToken){setError('Link de recuperação inválido ou expirado.');return;}
+  if(recoveryPassword!==recoveryConfirm){setError('As senhas não coincidem.');return;}
+  if(recoveryPassword.length<12||!/[a-z]/.test(recoveryPassword)||!/[A-Z]/.test(recoveryPassword)||!/[0-9]/.test(recoveryPassword)||!(/[^A-Za-z0-9]/.test(recoveryPassword))){
+   setError('Use pelo menos 12 caracteres com maiúscula, minúscula, número e símbolo.');return;
+  }
+  setBusy(true);
+  try{
+   const r=await fetch(SUPA+'/auth/v1/user',{method:'PUT',headers:{apikey:KEY,Authorization:'Bearer '+recoveryToken,'Content-Type':'application/json'},body:JSON.stringify({password:recoveryPassword})});
+   const j:any=await r.json();
+   if(!r.ok)throw new Error(j.msg||j.message||j.error_description||'Não foi possível atualizar a senha.');
+   localStorage.removeItem('vectta.session');
+   setRecoveryToken('');setRecoveryPassword('');setRecoveryConfirm('');setSession(null);setDemo(false);setMode('login');
+   history.replaceState(null,'',location.pathname+location.search);
+   setNotice('Senha atualizada. Entre novamente com a nova senha.');
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao atualizar a senha.')}finally{setBusy(false)}
  }
  function logout(){localStorage.removeItem('vectta.session');setSession(null);setDemo(false);setProjects([]);setTasks([]);setOps([]);setFeedbacks([]);setCampaigns([]);setCampaignContacts([]);setCampaignRecipients([]);setProfile(null)}
  async function enterDemo(){
@@ -447,6 +488,27 @@ export default function Page(){
   setOps(items=>id?items.map(o=>o.id===id?rows[0]:o):[rows[0],...items]);
  }
  function table(rows:Project[]){return <div className={s.tableWrap}><table><thead><tr><th>Cliente / sistema</th><th>Etapa</th><th>Progresso</th><th>Prazo</th><th>Risco</th><th/></tr></thead><tbody>{rows.map(p=>{const r=risk(p);return <tr key={p.id}><td><button className={s.client} onClick={()=>setSelected(p.id)}>{p.client}</button><span>{p.system} · {p.segment}</span></td><td><span className={s.badge}>{p.phase}</span></td><td>{progress(p)}%<div className={s.progress}><i style={{width:progress(p)+'%'}}/></div></td><td>{fmt(p.due_date)}</td><td><span className={s.badge+' '+badge(r.level)}>{r.level}</span></td><td><button className={s.btn+' '+s.ghost} onClick={()=>setSelected(p.id)}><ChevronRight size={16}/></button></td></tr>})}</tbody></table>{!rows.length&&<div className={s.empty}>Nenhuma implantação encontrada.</div>}</div>}
+
+ if(recoveryToken)return <div className={s.auth}>
+  <section className={s.authHero}>
+   <div className={s.authBrand}><img src={VT} alt="VT"/><b>Vectta</b></div>
+   <div className={s.authCopy}><h1>Recupere o acesso.<br/><em>Com segurança.</em></h1><p>Defina uma nova senha forte para sua conta Vectta.</p></div>
+   <img className={s.authMascot} src={MASCOT} alt="Mascote chAI"/>
+  </section>
+  <section className={s.authPanel}>
+   <form className={s.authCard} onSubmit={resetRecoveredPassword}>
+    <div className={s.brandRow}><img className={s.vt} src={VT} alt="VT"/><div className={s.brandName}>Vectta</div></div>
+    {error&&<div className={s.error}>{error}</div>}
+    <div><h2>Criar nova senha</h2><p>{email?<>Conta: <strong>{email}</strong></>:'Link de recuperação validado.'}</p></div>
+    <label>Nova senha<input className={s.input} type="password" autoComplete="new-password" value={recoveryPassword} minLength={12} onChange={e=>setRecoveryPassword(e.target.value)}/></label>
+    <label>Confirmar nova senha<input className={s.input} type="password" autoComplete="new-password" value={recoveryConfirm} minLength={12} onChange={e=>setRecoveryConfirm(e.target.value)}/></label>
+    <small>Use 12+ caracteres com maiúscula, minúscula, número e símbolo.</small>
+    <button type="submit" className={s.btn+' '+s.primary} disabled={busy}><ShieldCheck size={16}/>{busy?'Atualizando...':'Atualizar senha'}</button>
+    <button type="button" className={s.btn} onClick={()=>{setRecoveryToken('');setRecoveryPassword('');setRecoveryConfirm('');history.replaceState(null,'',location.pathname+location.search);}}>Cancelar</button>
+   </form>
+   <img className={s.authChaiCorner} src={CHAI} alt="chAI"/>
+  </section>
+ </div>;
 
  if(!session&&!demo)return <div className={s.auth}>
   <section className={s.authHero}>

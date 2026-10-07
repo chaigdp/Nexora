@@ -1,0 +1,9 @@
+-- Aplicada em produção em 07/10/2026.
+-- Separa dados fictícios dos registros operacionais, cria backup lógico e remove a função demo SECURITY DEFINER.
+-- A versão efetivamente aplicada está registrada no histórico de migrations do projeto Supabase.
+-- Estruturas principais:
+-- private.backup_snapshots
+-- private.backup_restore_tests
+-- public.demo_portfolio_snapshots
+-- public.get_demo_portfolio() SECURITY INVOKER
+-- constraint projects_no_demo_records

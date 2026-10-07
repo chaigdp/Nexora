@@ -1,0 +1,3 @@
+-- Aplicada em produção em 07/10/2026.
+-- Remove SECURITY DEFINER desnecessário dos helpers de workspace,
+-- elimina políticas permissivas redundantes e adiciona índices de FKs.

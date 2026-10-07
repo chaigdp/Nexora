@@ -1,0 +1,16 @@
+name: Vectta uptime
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check application
+        run: curl --fail --silent --show-error --location --retry 2 --max-time 15 https://vectta.vercel.app/ > /dev/null
+      - name: Check health endpoint
+        run: curl --fail --silent --show-error --location --retry 2 --max-time 15 https://vectta.vercel.app/api/health

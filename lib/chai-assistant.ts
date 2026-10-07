@@ -3,8 +3,8 @@ import {chaiModuleLabels,type ChaiModule} from './chai-modules';
 
 type ChatMessage={role:'user'|'assistant';content:string};
 type Options={request?:typeof fetch;key?:string;model?:string;now?:()=>number;providerTimeoutMs?:number};
-const SUPA='https://pldxmxgrgyfwtnhxqaji.supabase.co';
-const PUBLISHABLE='sb_publishable_jYHHJD8SzmFb2cuJvRcPIQ_Gt-0yTYC';
+const SUPA=process.env.SUPABASE_URL??process.env.NEXT_PUBLIC_SUPABASE_URL??'https://pldxmxgrgyfwtnhxqaji.supabase.co';
+const PUBLISHABLE=process.env.SUPABASE_PUBLISHABLE_KEY??process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY??'sb_publishable_jYHHJD8SzmFb2cuJvRcPIQ_Gt-0yTYC';
 const minuteLimits=new Map<string,{start:number;count:number}>();
 const reply=(body:Record<string,unknown>,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
 const redact=(text:string)=>text.replace(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi,'[e-mail omitido]').replace(/(?:\+?\d[\d ().-]{8,}\d)/g,'[número omitido]');

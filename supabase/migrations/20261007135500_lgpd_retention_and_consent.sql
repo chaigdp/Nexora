@@ -1,0 +1,8 @@
+-- Aplicada em produção em 07/10/2026.
+-- Governança de dados e retenção.
+-- Estruturas principais:
+-- public.retention_policies
+-- public.privacy_requests
+-- public.consent_events
+-- private.run_retention_all()
+-- job pg_cron vectta-retention-daily

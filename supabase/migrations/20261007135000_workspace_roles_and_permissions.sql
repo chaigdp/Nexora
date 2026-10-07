@@ -1,0 +1,9 @@
+-- Aplicada em produção em 07/10/2026.
+-- RBAC do Vectta: owner, admin, analyst e viewer.
+-- Estruturas principais:
+-- public.workspace_members
+-- public.workspace_invites
+-- public.current_workspace_owner_id()
+-- public.workspace_role(uuid)
+-- defaults de user_id vinculados ao workspace
+-- políticas RLS por papel nas tabelas operacionais

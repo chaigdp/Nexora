@@ -1,0 +1,31 @@
+name: Vectta load test
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  load:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[load-test]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Wait for public app
+        run: |
+          for i in {1..18}; do
+            if curl --fail --silent --location --max-time 10 https://vectta.vercel.app/ > /dev/null; then exit 0; fi
+            sleep 10
+          done
+          exit 1
+      - name: Simulate concurrent access
+        env:
+          TARGET_URL: https://vectta.vercel.app
+          CONCURRENCY: "20"
+          REQUESTS: "200"
+          TIMEOUT_MS: "10000"
+        run: node scripts/load-test.mjs
