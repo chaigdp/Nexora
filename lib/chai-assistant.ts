@@ -78,13 +78,15 @@ async function requestGateway(request:typeof fetch,key:string,body:Record<string
 export function parseChatRequest(body:unknown) {
   if(!body||typeof body!=='object'||Array.isArray(body))throw new Error('invalid_body');
   const p=body as Record<string,unknown>;
+  const demo=p.demo===true;
   const projectId=typeof p.project_id==='string'?p.project_id:'';
-  if(projectId&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId))throw new Error('invalid_project');
+  const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const demoId=/^[a-z0-9_-]{1,64}$/i;
+  if(projectId&&!uuid.test(projectId)&&!(demo&&demoId.test(projectId)))throw new Error('invalid_project');
   const moduleValue=typeof p.module==='string'?p.module:'cs';
   if(!Object.prototype.hasOwnProperty.call(chaiModuleLabels,moduleValue))throw new Error('invalid_module');
   const module=moduleValue as ChaiModule;
   if(!Array.isArray(p.messages)||!p.messages.length||p.messages.length>8)throw new Error('invalid_messages');
-  const demo=p.demo===true;
   const messages=p.messages.map((raw):ChatMessage=>{
     if(!raw||typeof raw!=='object')throw new Error('invalid_message');
     const m=raw as Record<string,unknown>;
