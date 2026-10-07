@@ -158,7 +158,25 @@ export default function Page(){
   }catch(e){setError(e instanceof Error?e.message:'Falha na autenticação.')}finally{setBusy(false)}
  }
  function logout(){localStorage.removeItem('vectta.session');setSession(null);setDemo(false);setProjects([]);setTasks([]);setOps([]);setFeedbacks([]);setCampaigns([]);setCampaignContacts([]);setCampaignRecipients([]);setProfile(null)}
- function enterDemo(){setDemo(true);setSession({access_token:'demo',user:{id:'demo',email:'demo@vectta.local',user_metadata:{full_name:'Chai'}}});setProjects(demos);setTasks(demoTasks);setOps(demoOps)}
+ async function enterDemo(){
+  setBusy(true);setError('');setNotice('');
+  try{
+   const r=await fetch(SUPA+'/rest/v1/rpc/get_demo_portfolio',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:'{}'});
+   const j:any=await r.json();
+   if(!r.ok)throw new Error(j.message||'Não foi possível carregar a base demonstrativa.');
+   setDemo(true);
+   setSession({access_token:'demo',user:{id:'demo',email:'demo@vectta.local',user_metadata:{full_name:'Chai'}}});
+   setProjects(Array.isArray(j.projects)?j.projects:demos);
+   setTasks(Array.isArray(j.tasks)?j.tasks:demoTasks);
+   setOps(Array.isArray(j.operations)?j.operations:demoOps);
+   setFeedbacks(Array.isArray(j.feedbacks)?j.feedbacks:[]);
+  }catch(e){
+   setDemo(true);
+   setSession({access_token:'demo',user:{id:'demo',email:'demo@vectta.local',user_metadata:{full_name:'Chai'}}});
+   setProjects(demos);setTasks(demoTasks);setOps(demoOps);setFeedbacks([]);
+   setError(e instanceof Error?e.message:'Falha ao carregar base demo.');
+  }finally{setBusy(false)}
+ }
  const current=projects.find(p=>p.id===selected);
  const currentTrailIndex=current?Math.max(0,trailStages.findIndex(x=>x.phase===current.phase)):-1;
  const focusedTrail=trailStages.find(x=>x.phase===trailFocus)||(currentTrailIndex>=0?trailStages[currentTrailIndex]:trailStages[0]);
