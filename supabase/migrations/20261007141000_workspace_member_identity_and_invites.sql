@@ -1,0 +1,5 @@
+-- Aplicada em produção em 07/10/2026.
+-- Identidade dos membros de workspace e aceitação automática de convites.
+-- workspace_members passa a registrar e-mail para gestão de acesso.
+-- Convites para usuários já existentes são materializados por trigger privado.
+-- Convites para novos usuários são materializados pelo trigger de criação do perfil.

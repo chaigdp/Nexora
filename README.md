@@ -1,59 +1,69 @@
-# Vectta 2.0
+# Vectta
 
-Plataforma de gestão de implementação de sistemas. Carteira da analista com clientes, entregas, riscos fundamentados, cronograma, requisitos, testes, chamados, processos, parametrizações, prontidão e rentabilidade.
+Plataforma web para gestão de implementação, Customer Success e inteligência operacional.
 
-## Acessar
+## Produção e demonstração
 
-Versão atual (Next.js na Vercel, dados no Supabase):
+Aplicação atual: https://vectta.vercel.app
 
-https://vectta.vercel.app
+A produção e a demonstração são separadas no banco.
 
-A Edge Function do Supabase abaixo é uma interface anterior e não contém o novo módulo de CS:
+- Produção começa sem clientes fictícios e persiste somente dados autenticados.
+- A demonstração lê um snapshot somente leitura com 35 empresas fictícias.
+- Registros marcados como dados de teste são bloqueados nas tabelas operacionais de produção.
+- O backup lógico pré-go-live foi validado com restauração tipada em ambiente temporário.
 
-https://pldxmxgrgyfwtnhxqaji.supabase.co/functions/v1/vectta
+## Stack atual
 
-Versão legada do ChatGPT Sites (não usar para validar alterações atuais):
+- Next.js 16
+- React 19
+- TypeScript 5
+- PostgreSQL e Supabase Auth
+- RLS no banco
+- Vercel
+- GitHub Actions
+- Vercel AI Gateway para a chAI
 
-https://vectta.chaianegdp.chatgpt.site
+## Acesso e permissões
 
-Demonstração: `demo@vectta.app` / `VecttaDemo2026!`. Cada entrada cria 30 empresas fictícias e 210 entregas em uma carteira isolada. Para manter seus projetos, crie sua conta pessoal: ela começa vazia e salva os dados no banco. Login é exigido a cada abertura ou recarga; a comprovação de acesso fica na memória da página. A sessão tem limite de 8 horas.
+O Vectta possui workspace com quatro papéis:
 
-## Negócio
+- Owner: propriedade do workspace e controle de acessos.
+- Admin: administração operacional e integrações.
+- Analyst: criação e atualização de registros operacionais.
+- Viewer: consulta sem escrita.
 
-Clientes incluem contato, identificação empresarial, vínculo CRM, objetivo mensurável, receita e esforço. Pendências incluem insumos, dependência, responsável, status, andamento e evidência. Entrada em operação exige critérios verificados pelo servidor. Os registros operacionais começam vazios, inclusive na demonstração, para que evidências e aceites não sejam inventados.
+A autorização é aplicada no PostgreSQL por RLS. Não depende apenas da interface.
 
-Importação CSV permite mapear colunas e conferir até 50 projetos antes de gravar. CRM + identificador externo não pode repetir. Exportação inclui campos comerciais. A fila de integração registra mudanças de implantação, mas nenhum conector HubSpot está ativo.
+## chAI
 
-## Acompanhamento de CS e chAI
+A rota `POST /api/chai` valida a sessão, consulta apenas dados autorizados por RLS, reduz o contexto enviado ao modelo e aplica filtragem básica de e-mails e telefones. A IA não recebe ferramentas de escrita direta no banco nem envia mensagens por conta própria.
 
-O menu Acompanhamento de CS reúne saúde explicada por cliente, próximos contatos e planos de acompanhamento, atrito, reversão, adoção e expansão. Os planos usam a tabela operations com isolamento por usuário. A demonstração mantém os planos apenas na memória da página.
+O modelo é acessado pelo Vercel AI Gateway. Se o provedor estiver indisponível, análises estratégicas limitadas podem usar regras locais do Vectta.
 
-A chAI recebe o contexto autorizado da carteira pelo servidor. Respostas reais dependem da configuração do AI Gateway na hospedagem; a demonstração usa regras locais, identificadas na interface. Consulte [implementação e limites](docs/CS_CHAI_2026-10-06.md).
+## Segurança e operação
 
-## Arquitetura anterior
+- RLS ativo nas tabelas operacionais.
+- Demo pública restrita a snapshot fictício.
+- Headers HTTP de segurança configurados.
+- Recuperação de senha com fluxo dedicado de definição de nova senha.
+- Endpoint `/api/health`.
+- Monitoramento sintético por GitHub Actions.
+- Retenção automática de logs transitórios.
+- Registro de solicitações LGPD e eventos de consentimento.
+- CI executa TypeScript, testes e build.
 
-React, TypeScript, Cloudflare Workers e banco D1. Validação de entrada, consultas parametrizadas, isolamento por carteira, verificação de origem, senhas derivadas por PBKDF2 e sessões HttpOnly. A rota `/api/vectta` é canônica; `/api/nexora` e identificadores internos antigos permanecem apenas para compatibilidade de sessões e integrações existentes.
+## Teste de carga de go-live
 
-## Executar e validar
+Em 07/10/2026 o fluxo automatizado executou 200 requisições com concorrência 20, sem erros. O teste é um baseline técnico e não substitui teste de capacidade com a carga real esperada.
 
-Requer Node.js 24 e pnpm 11.25.0.
+## Pendências externas antes de produção comercial plena
 
-1. `pnpm install --frozen-lockfile`
-2. `pnpm exec tsc --noEmit`
-3. `node tests/auth-session.mjs`
-4. `pnpm build`
-5. Aplicar os três arquivos SQL de `drizzle/`, em ordem, no banco local: `pnpm exec wrangler d1 execute site-creator-d1 --local --config dist/server/wrangler.json --file drizzle/0000_calm_preak.sql --persist-to .wrangler/state`; repetir para `0001_sharp_stick.sql` e `0002_operations.sql`.
-6. `pnpm start`
+- habilitar Leaked Password Protection no Supabase, disponível em plano pago compatível;
+- adotar backup gerenciado/PITR e testar restauração do provedor;
+- usar planos comerciais adequados de Vercel e Supabase;
+- configurar SMTP transacional próprio;
+- validar a política LGPD juridicamente;
+- realizar revisão periódica de segurança e recuperação de desastre.
 
-A hospedagem gerenciada mantém o banco pelo vínculo DB em `.openai/hosting.json`. O identificador do banco na configuração local é um marcador de desenvolvimento. Não usá-lo como identificador real em hospedagem própria.
-
-## Entrega e saúde
-
-A integração contínua em `.github/workflows/ci.yml` verifica tipos, testes de serviço e compilação. A publicação recomendada atual usa uma Supabase Edge Function versionada em `supabase/functions/vectta/index.ts`, com Supabase Auth e PostgreSQL/RLS. O antigo ChatGPT Sites permanece apenas como legado enquanto não houver acesso de republicação. A função pública serve somente a interface; os dados continuam protegidos por autenticação e RLS no banco.
-
-## Limites explícitos
-
-Ainda pendentes: domínio próprio, validação completa do redirecionamento de recuperação de senha por e-mail no ambiente publicado, permissões por equipe, anexos privados, limpeza automática de demonstrações, restauração de cópia de segurança testada, alertas externos e sincronização CRM bidirecional. Manual ERP registra procedimentos do projeto; não substitui documentação oficial ou validação fiscal. O aceite é registrado pela analista, não assinado digitalmente pelo cliente.
-
-[Escopo e próximos diferenciais](docs/VECTTA_2_PRODUTO.md). A senha demo é intencionalmente pública; não permite acessar carteiras pessoais. Não enviar segredos ou dados reais ao repositório.
-
+Consulte `docs/GO_LIVE_2026-10-07.md` e `docs/LGPD_RETENCAO.md`.

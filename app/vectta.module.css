@@ -463,3 +463,14 @@ button.csKpi:hover{
     animation:none!important;
   }
 }
+
+
+/* Team access management */
+.teamRoleCallout{display:flex;align-items:center;gap:14px;padding:16px 18px;margin:0 0 18px;border:1px solid rgba(20,216,255,.22);border-radius:16px;background:linear-gradient(135deg,rgba(20,216,255,.07),rgba(106,43,255,.08))}
+.teamRoleCallout>svg{color:var(--cyan);flex:0 0 auto}.teamRoleCallout>div{display:grid;gap:4px}.teamRoleCallout span{font-size:9px;letter-spacing:.12em;color:#8fdff3;font-weight:850}.teamRoleCallout strong{font-size:17px}.teamRoleCallout small{color:var(--muted);line-height:1.5}
+.teamGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}.teamGrid>.dashboardWide{grid-column:1/-1}
+.teamInviteForm{display:grid;grid-template-columns:minmax(0,1fr) 190px auto;gap:10px;align-items:end}.teamInviteForm label{display:grid;gap:7px;color:#bec9e5;font-size:12px}
+.teamPermissionGuide{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}.teamPermissionGuide>div{padding:12px;border:1px solid rgba(79,96,174,.42);border-radius:12px;background:rgba(7,16,58,.36);display:grid;gap:4px}.teamPermissionGuide b{font-size:11px}.teamPermissionGuide span{font-size:10px;color:var(--muted);line-height:1.45}
+.teamList{display:grid;gap:9px}.teamMember{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px;border:1px solid rgba(75,88,158,.42);border-radius:12px;background:rgba(7,16,58,.34)}.teamMember>div:first-child{min-width:0;display:grid;gap:4px}.teamMember strong{font-size:12px;overflow:hidden;text-overflow:ellipsis}.teamMember span{font-size:10px;color:var(--muted)}.teamMemberActions{display:flex!important;grid-template-columns:none!important;align-items:center;gap:8px!important}.teamMemberActions .input{width:160px;padding:8px 10px}.teamMemberActions .btn{min-height:36px;padding:8px 10px;font-size:11px}
+@media(max-width:980px){.teamGrid{grid-template-columns:1fr}.teamGrid>.dashboardWide{grid-column:auto}.teamInviteForm{grid-template-columns:1fr 1fr}.teamInviteForm .btn{grid-column:1/-1;justify-content:center}}
+@media(max-width:650px){.teamInviteForm,.teamPermissionGuide{grid-template-columns:1fr}.teamInviteForm .btn{grid-column:auto}.teamMember{align-items:flex-start;flex-direction:column}.teamMemberActions{width:100%;flex-direction:column;align-items:stretch!important}.teamMemberActions .input,.teamMemberActions .btn{width:100%}}

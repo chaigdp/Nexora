@@ -17,7 +17,7 @@ import type {CSOperation} from '../lib/customer-success';
 const SUPA=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://pldxmxgrgyfwtnhxqaji.supabase.co';
 const KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publishable_jYHHJD8SzmFb2cuJvRcPIQ_Gt-0yTYC';
 const VT='/vectta-vt-mark-v2.svg';
-const MASCOT='https://588b1eb0-7217-4ce5-a0c1-281504d2838d.sandbox.floot.app/_cdn/static/fe3b931e-e202-4799-b08a-f388c75ed8ac-chai-mascot-official.png';
+const MASCOT='/chai-home-dashboard.webp';
 const HOME_MASCOT='/chai-home-dashboard.webp';
 const CHAI='/chai-logo.svg';
 
@@ -27,6 +27,9 @@ type Task={id:string;project_id:string;title:string;owner:string;due_date:string
 type Op={id:string;project_id:string;kind:string;title:string;owner:string;due_date:string|null;status:string;priority:string;detail:string;evidence:string;strategy:string;progress:number};
 type Session={access_token:string;refresh_token?:string;user:{id:string;email?:string;user_metadata?:any}};
 type Profile={id:string;full_name:string;workspace_name:string;phone?:string;avatar_url?:string};
+type WorkspaceRole='owner'|'admin'|'analyst'|'viewer';
+type WorkspaceMember={workspace_owner_id:string;user_id:string;email:string;role:WorkspaceRole;status:'active'|'disabled';created_at:string;updated_at:string};
+type WorkspaceInvite={id:string;email:string;role:Exclude<WorkspaceRole,'owner'>;status:'pending'|'accepted'|'revoked'|'expired';expires_at:string;created_at:string};
 type Feedback={id:string;project_id:string;contact_name:string;contact_role:string;channel:string;csat:number|null;nps:number|null;ces:number|null;comment:string;created_at:string};
 type Campaign={id:string;name:string;channel:string;message:string;audience:string;status:string;target_filter:any;scheduled_at:string|null;created_at:string;recipient_mode?:string;template_name?:string;template_language?:string};
 type CampaignContact={id:string;name:string;phone:string;email:string;segment:string;group_name:string;profile:string;consent:boolean;source:string;tags:any};
@@ -50,7 +53,7 @@ const trailStages=[
 ];
 const nav=[
 ['Início',LayoutDashboard],['Visão geral',ChartNoAxesCombined],['Implantações',Layers3],['Pendências',ListTodo],
-['Acompanhamento de CS',Headphones],['Resultados',WalletCards],['Relatórios e dados',ChartNoAxesCombined],['Feedbacks',Headphones],['Campanhas',Plug],['Segurança',ShieldCheck],['Guia de uso',BookOpen],['Riscos e estratégias',AlertTriangle],
+['Acompanhamento de CS',Headphones],['Resultados',WalletCards],['Relatórios e dados',ChartNoAxesCombined],['Feedbacks',Headphones],['Campanhas',Plug],['Equipe e acessos',ShieldCheck],['Segurança',ShieldCheck],['Guia de uso',BookOpen],['Riscos e estratégias',AlertTriangle],
 ['Cronograma',CalendarDays],['Requisitos',ClipboardCheck],['Testes',TestTube2],['Chamados',Headphones],
 ['Processos',Workflow],['Manual ERP',Settings2],['Entrada em operação',Check],['Integrações',Plug],['Rentabilidade',WalletCards]
 ] as const;
@@ -100,6 +103,10 @@ export default function Page(){
  const [campaignContacts,setCampaignContacts]=useState<CampaignContact[]>([]);
  const [campaignRecipients,setCampaignRecipients]=useState<CampaignRecipient[]>([]);
  const [profile,setProfile]=useState<Profile|null>(null);
+ const [workspaceMembers,setWorkspaceMembers]=useState<WorkspaceMember[]>([]);
+ const [workspaceInvites,setWorkspaceInvites]=useState<WorkspaceInvite[]>([]);
+ const [inviteEmail,setInviteEmail]=useState('');
+ const [inviteRole,setInviteRole]=useState<Exclude<WorkspaceRole,'owner'>>('analyst');
  const [view,setView]=useState('Início');
  const [previousView,setPreviousView]=useState('Início');
  const [selected,setSelected]=useState('');
@@ -162,11 +169,22 @@ export default function Page(){
   const r=await fetch(SUPA+'/rest/v1/'+table+'?select=*',{headers:{apikey:KEY,Authorization:'Bearer '+token}});
   const j:any=await r.json();if(!r.ok)throw new Error(j.message||'Falha ao carregar dados.');return j;
  }
+ async function apiFields(table:string,fields:string,token:string){
+  const r=await fetch(SUPA+'/rest/v1/'+table+'?select='+fields,{headers:{apikey:KEY,Authorization:'Bearer '+token}});
+  const j:any=await r.json();if(!r.ok)throw new Error(j.message||'Falha ao carregar dados.');return j;
+ }
  async function load(){
   if(!session)return;
   try{
-   const [p,t,o,fb,ca,cc,cr,pr]=await Promise.all([api('projects',session.access_token),api('tasks',session.access_token),api('operations',session.access_token),api('feedbacks',session.access_token),api('campaigns',session.access_token),api('campaign_contacts',session.access_token),api('campaign_recipients',session.access_token),api('profiles',session.access_token)]);
-   setProjects(p);setTasks(t);setOps(o);setFeedbacks(fb);setCampaigns(ca);setCampaignContacts(cc);setCampaignRecipients(cr);const own=pr[0]||null;setProfile(own);if(own)setProfileForm({full_name:own.full_name||'',workspace_name:own.workspace_name||'Carteira pessoal',phone:own.phone||'',avatar_url:own.avatar_url||''});
+   const [p,t,o,fb,ca,cc,cr,pr,wm,wi]=await Promise.all([
+    api('projects',session.access_token),api('tasks',session.access_token),api('operations',session.access_token),api('feedbacks',session.access_token),
+    api('campaigns',session.access_token),api('campaign_contacts',session.access_token),api('campaign_recipients',session.access_token),api('profiles',session.access_token),
+    apiFields('workspace_members','workspace_owner_id,user_id,email,role,status,created_at,updated_at',session.access_token),
+    apiFields('workspace_invites','id,email,role,status,expires_at,created_at',session.access_token)
+   ]);
+   setProjects(p);setTasks(t);setOps(o);setFeedbacks(fb);setCampaigns(ca);setCampaignContacts(cc);setCampaignRecipients(cr);
+   setWorkspaceMembers(Array.isArray(wm)?wm:[]);setWorkspaceInvites(Array.isArray(wi)?wi:[]);
+   const own=pr[0]||null;setProfile(own);if(own)setProfileForm({full_name:own.full_name||'',workspace_name:own.workspace_name||'Carteira pessoal',phone:own.phone||'',avatar_url:own.avatar_url||''});
   }catch(e){setError(e instanceof Error?e.message:'Falha ao carregar.')}
  }
  async function submitAuth(){
@@ -201,7 +219,7 @@ export default function Page(){
    setNotice('Senha atualizada. Entre novamente com a nova senha.');
   }catch(e){setError(e instanceof Error?e.message:'Falha ao atualizar a senha.')}finally{setBusy(false)}
  }
- function logout(){localStorage.removeItem('vectta.session');setSession(null);setDemo(false);setProjects([]);setTasks([]);setOps([]);setFeedbacks([]);setCampaigns([]);setCampaignContacts([]);setCampaignRecipients([]);setProfile(null)}
+ function logout(){localStorage.removeItem('vectta.session');setSession(null);setDemo(false);setProjects([]);setTasks([]);setOps([]);setFeedbacks([]);setCampaigns([]);setCampaignContacts([]);setCampaignRecipients([]);setWorkspaceMembers([]);setWorkspaceInvites([]);setProfile(null)}
  async function enterDemo(){
   setBusy(true);setError('');setNotice('');
   try{
@@ -231,6 +249,9 @@ export default function Page(){
  const high=projects.filter(p=>risk(p).level==='Alto').length;
  const filtered=useMemo(()=>projects.filter(p=>(phase==='Todas'||p.phase===phase)&&[p.client,p.system,p.segment,p.cnpj,p.contact_name,p.contact_email,p.contact_phone].filter(Boolean).join(' ').toLowerCase().includes(query.toLowerCase())),[projects,phase,query]);
  const displayName=demo?'Chai':profile?.full_name||session?.user.user_metadata?.full_name||session?.user.email?.split('@')[0]||'Chai';
+ const currentMembership=workspaceMembers.find(m=>m.user_id===session?.user.id);
+ const currentRole:WorkspaceRole=demo?'viewer':currentMembership?.role||'viewer';
+ const roleLabel=(role:WorkspaceRole)=>role==='owner'?'Proprietária':role==='admin'?'Administradora':role==='analyst'?'Analista':'Somente leitura';
  const avgProgress=projects.length?Math.round(projects.reduce((sum,p)=>sum+progress(p),0)/projects.length):0;
  const criticalOpen=pending.filter(t=>t.critical).length;
  const blockedOpen=pending.filter(t=>t.blocked).length;
@@ -371,7 +392,7 @@ export default function Page(){
   if(!session)return;
   setBusy(true);setError('');
   try{
-   const body={user_id:session.user.id,project_id:feedbackForm.project_id,contact_name:feedbackForm.contact_name,contact_role:feedbackForm.contact_role,channel:feedbackForm.channel,csat:Number(feedbackForm.csat),nps:Number(feedbackForm.nps),ces:Number(feedbackForm.ces),comment:feedbackForm.comment};
+   const body={project_id:feedbackForm.project_id,contact_name:feedbackForm.contact_name,contact_role:feedbackForm.contact_role,channel:feedbackForm.channel,csat:Number(feedbackForm.csat),nps:Number(feedbackForm.nps),ces:Number(feedbackForm.ces),comment:feedbackForm.comment};
    const r=await fetch(SUPA+'/rest/v1/feedbacks',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(body)});
    const j:any=await r.json();if(!r.ok)throw new Error(j.message||'Não foi possível salvar o feedback.');setFeedbacks(x=>[j[0],...x]);setFeedbackForm(x=>({...x,contact_name:'',contact_role:'',comment:''}));setNotice('Feedback registrado.');
   }catch(e){setError(e instanceof Error?e.message:'Falha ao salvar feedback.')}finally{setBusy(false)}
@@ -415,15 +436,15 @@ export default function Page(){
    const dedup=new Map<string,CampaignTarget>();
    campaignTargets.forEach(x=>{const key=campaignForm.channel==='E-mail'?x.email.toLowerCase():normalizePhone(x.phone);if(key&&!dedup.has(key))dedup.set(key,x)});
    const recipients=[...dedup.values()];
-   const body={user_id:session.user.id,name:campaignForm.name,channel:campaignForm.channel,message:campaignForm.message,audience:campaignForm.audience,status:'Pronta para integração',recipient_mode:campaignForm.recipientMode,template_name:campaignForm.template_name,template_language:campaignForm.template_language,target_filter:{consentRequired:true,targetCount:recipients.length,segment:campaignForm.segment,phase:campaignForm.phase,risk:campaignForm.risk,listGroup:campaignForm.listGroup,listProfile:campaignForm.listProfile}};
+   const body={name:campaignForm.name,channel:campaignForm.channel,message:campaignForm.message,audience:campaignForm.audience,status:'Pronta para integração',recipient_mode:campaignForm.recipientMode,template_name:campaignForm.template_name,template_language:campaignForm.template_language,target_filter:{consentRequired:true,targetCount:recipients.length,segment:campaignForm.segment,phase:campaignForm.phase,risk:campaignForm.risk,listGroup:campaignForm.listGroup,listProfile:campaignForm.listProfile}};
    const r=await fetch(SUPA+'/rest/v1/campaigns',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(body)});
    const j:any=await r.json();if(!r.ok)throw new Error(j.message||'Não foi possível preparar a campanha.');
    const created=j[0];
-   const rows=recipients.map(x=>({user_id:session.user.id,campaign_id:created.id,name:x.name||'',phone:normalizePhone(x.phone||''),email:x.email||'',source:x.source,status:'Pendente'}));
+   const rows=recipients.map(x=>({campaign_id:created.id,name:x.name||'',phone:normalizePhone(x.phone||''),email:x.email||'',source:x.source,status:'Pendente'}));
    const rr=await fetch(SUPA+'/rest/v1/campaign_recipients',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(rows)});
    const rj:any=await rr.json();if(!rr.ok)throw new Error(rj.message||'Campanha salva, mas não foi possível gravar os destinatários.');
    if(campaignForm.recipientMode!=='base'){
-    const external=recipients.map(x=>({user_id:session.user.id,name:x.name||'',phone:normalizePhone(x.phone||''),email:x.email||'',segment:x.segment||'',group_name:x.group_name||'',profile:x.profile||'',consent:true,source:x.source,tags:{campaign_id:created.id}}));
+    const external=recipients.map(x=>({name:x.name||'',phone:normalizePhone(x.phone||''),email:x.email||'',segment:x.segment||'',group_name:x.group_name||'',profile:x.profile||'',consent:true,source:x.source,tags:{campaign_id:created.id}}));
     const cr=await fetch(SUPA+'/rest/v1/campaign_contacts',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(external)});
     if(!cr.ok){const cj:any=await cr.json().catch(()=>({}));console.warn('Contato externo não persistido',cj)}
    }
@@ -443,13 +464,53 @@ export default function Page(){
  }
  function goBack(){if(selected){setSelected('');return}const target=previousView||'Início';setView(target);setPreviousView('Início');setMobile(false)}
 
+
+ async function inviteWorkspaceMember(){
+  if(!session||demo||currentRole!=='owner')return;
+  const normalized=inviteEmail.trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)){setError('Informe um e-mail válido.');return}
+  setBusy(true);setError('');setNotice('');
+  try{
+   const r=await fetch(SUPA+'/rest/v1/workspace_invites',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({email:normalized,role:inviteRole})});
+   const j:any=await r.json().catch(()=>[]);
+   if(!r.ok)throw new Error(j.message||'Não foi possível registrar o convite.');
+   const mail=await fetch(SUPA+'/auth/v1/otp?redirect_to='+encodeURIComponent(location.origin),{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({email:normalized,create_user:true,data:{vectta_invite:true}})});
+   if(!mail.ok){
+    setNotice('A permissão foi registrada, mas o e-mail automático não pôde ser enviado. A pessoa ainda poderá entrar ou criar conta com esse e-mail.');
+   }else{
+    setNotice('Convite registrado. Enviamos um link de acesso para '+normalized+'.');
+   }
+   setInviteEmail('');await load();
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao convidar integrante.')}finally{setBusy(false)}
+ }
+ async function updateWorkspaceMember(member:WorkspaceMember,patch:Partial<Pick<WorkspaceMember,'role'|'status'>>){
+  if(!session||demo||currentRole!=='owner'||member.role==='owner')return;
+  setBusy(true);setError('');
+  try{
+   const r=await fetch(SUPA+'/rest/v1/workspace_members?workspace_owner_id=eq.'+encodeURIComponent(member.workspace_owner_id)+'&user_id=eq.'+encodeURIComponent(member.user_id),{method:'PATCH',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(patch)});
+   const j:any=await r.json().catch(()=>[]);
+   if(!r.ok)throw new Error(j.message||'Não foi possível alterar a permissão.');
+   setNotice('Permissão atualizada.');await load();
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao alterar permissão.')}finally{setBusy(false)}
+ }
+ async function revokeWorkspaceInvite(invite:WorkspaceInvite){
+  if(!session||demo||currentRole!=='owner'||invite.status!=='pending')return;
+  setBusy(true);setError('');
+  try{
+   const r=await fetch(SUPA+'/rest/v1/workspace_invites?id=eq.'+encodeURIComponent(invite.id),{method:'PATCH',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({status:'revoked'})});
+   const j:any=await r.json().catch(()=>[]);
+   if(!r.ok)throw new Error(j.message||'Não foi possível revogar o convite.');
+   setNotice('Convite revogado.');await load();
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao revogar convite.')}finally{setBusy(false)}
+ }
+
  async function createProject(){
   if(!form.client.trim())return;
   if(demo){setProjects(x=>x.concat({id:'d'+Date.now(),client:form.client,segment:form.segment,system:form.system,owner:form.owner,phase:form.phase,start_date:today(),due_date:form.due||null,scope:form.scope,manual_risk_level:'Baixo',metadata:{revenue:Number(form.revenue||0)}}));setModal(false);return}
   if(!session)return;
   setBusy(true);
   try{
-   const body={user_id:session.user.id,client:form.client,segment:form.segment,system:form.system,owner:form.owner,phase:form.phase,start_date:today(),due_date:form.due||null,scope:form.scope,manual_risk_level:'Baixo',metadata:{revenue:Number(form.revenue||0)},cnpj:form.cnpj,contact_name:form.contact_name,contact_email:form.contact_email,contact_phone:form.contact_phone,message_opt_in:form.message_opt_in,preferred_channel:form.preferred_channel};
+   const body={client:form.client,segment:form.segment,system:form.system,owner:form.owner,phase:form.phase,start_date:today(),due_date:form.due||null,scope:form.scope,manual_risk_level:'Baixo',metadata:{revenue:Number(form.revenue||0)},cnpj:form.cnpj,contact_name:form.contact_name,contact_email:form.contact_email,contact_phone:form.contact_phone,message_opt_in:form.message_opt_in,preferred_channel:form.preferred_channel};
    const r=await fetch(SUPA+'/rest/v1/projects',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(body)});
    if(!r.ok){const j:any=await r.json();throw new Error(j.message||'Falha ao salvar.');}
    setModal(false);setForm({client:'',segment:'',system:'',owner:'Chai',phase:'Descoberta',due:'',scope:'',revenue:'0',cnpj:'',contact_name:'',contact_email:'',contact_phone:'',message_opt_in:false,preferred_channel:'WhatsApp'});await load();setNotice('Implantação criada.');
@@ -469,7 +530,7 @@ export default function Page(){
   const fields={title:title.trim(),owner:owner.trim(),due_date,done,critical,kind,priority,blocked,detail,project_id};
   if(demo){const next={...fields,id:id||'task-'+crypto.randomUUID(),updated_at:new Date().toISOString()};setTasks(items=>id?items.map(t=>t.id===id?next:t):[next,...items]);return;}
   const query=id?'?id=eq.'+encodeURIComponent(id)+(updated_at?'&updated_at=eq.'+encodeURIComponent(updated_at):''):'';
-  const response=await fetch(SUPA+'/rest/v1/tasks'+query,{method:id?'PATCH':'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({...fields,user_id:session.user.id})});
+  const response=await fetch(SUPA+'/rest/v1/tasks'+query,{method:id?'PATCH':'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(fields)});
   if(!response.ok)throw new Error('Não foi possível salvar. Confira sua sessão e tente novamente.');
   const rows=await response.json() as Task[];
   if(!Array.isArray(rows)||!rows[0])throw new Error('A pendência mudou em outra sessão. Atualize a carteira antes de editar novamente.');
@@ -481,7 +542,7 @@ export default function Page(){
   if(demo){const next={...plan,id:plan.id||'cs-'+crypto.randomUUID(),updated_at:new Date().toISOString()};setOps(items=>plan.id?items.map(o=>o.id===plan.id?next:o):[next,...items]);return;}
   const {id,updated_at,...fields}=plan;
   const query=id?'?id=eq.'+encodeURIComponent(id)+(updated_at?'&updated_at=eq.'+encodeURIComponent(updated_at):''):'';
-  const response=await fetch(SUPA+'/rest/v1/operations'+query,{method:id?'PATCH':'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({...fields,user_id:session.user.id})});
+  const response=await fetch(SUPA+'/rest/v1/operations'+query,{method:id?'PATCH':'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(fields)});
   const rows=await response.json() as Op[];
   if(!response.ok)throw new Error('Não foi possível salvar. Confira os campos e sua sessão.');
   if(!Array.isArray(rows)||!rows[0])throw new Error('Esse registro mudou em outra sessão. Atualize a carteira antes de editar novamente.');
@@ -584,6 +645,13 @@ export default function Page(){
 
  <section className={s.dashboardCard+' '+s.campaignHistory}><div className={s.dashboardTitle}><div><h2>Campanhas salvas</h2><p>Destinatários, situação do disparo e integração do canal.</p></div></div><div className={s.campaignList}>{campaigns.map(ca=>{const rec=campaignRecipients.filter(r=>r.campaign_id===ca.id);const sent=rec.filter(r=>['Enviado','Entregue','Lido'].includes(r.status)).length,errors=rec.filter(r=>r.status==='Erro').length,pendingCount=rec.filter(r=>r.status==='Pendente').length;return <article className={s.campaignCard} key={ca.id}><div><div><strong>{ca.name}</strong><span>{ca.channel} · {ca.audience} · {rec.length} destinatários</span></div><span className={s.badge}>{ca.status}</span></div><p>{ca.message}</p><div className={s.deliveryStats}><span><b>{pendingCount}</b>Pendentes</span><span><b>{sent}</b>Enviados</span><span><b>{errors}</b>Erros</span></div>{ca.channel==='WhatsApp'&&<button className={s.btn+' '+s.primary} disabled={busy||!rec.length||ca.status==='Enviada'} onClick={()=>void sendCampaign(ca)}><Plug size={15}/>{ca.status==='Enviada'?'Campanha enviada':'Enviar agora'}</button>}</article>})}{!campaigns.length&&<div className={s.empty}>Nenhuma campanha preparada.</div>}</div></section>
  </>
+ else if(view==='Equipe e acessos')body=<><header className={s.pageHead}><div><span className={s.eyebrow}>EQUIPE E ACESSOS</span><h1>Quem pode acessar o Vectta.</h1><p>Permissões aplicadas no banco por função. Usuários de leitura não conseguem alterar a operação.</p></div></header>
+ <section className={s.teamRoleCallout}><ShieldCheck size={20}/><div><span>SEU PERFIL</span><strong>{roleLabel(currentRole)}</strong><small>{currentRole==='owner'?'Controle completo do workspace e das permissões.':currentRole==='admin'?'Gestão operacional com acesso administrativo, sem transferir a propriedade.':currentRole==='analyst'?'Pode criar e atualizar registros operacionais.':'Pode consultar a carteira sem alterar dados.'}</small></div></section>
+ {currentRole==='owner'?<div className={s.teamGrid}>
+  <section className={s.dashboardCard}><div className={s.dashboardTitle}><div><h2>Convidar pessoa</h2><p>O convite é vinculado ao e-mail. Ao entrar, a pessoa recebe somente o papel escolhido.</p></div></div><div className={s.teamInviteForm}><label>E-mail<input className={s.input} type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="pessoa@empresa.com"/></label><label>Permissão<select className={s.input} value={inviteRole} onChange={e=>setInviteRole(e.target.value as Exclude<WorkspaceRole,'owner'>)}><option value="admin">Administradora</option><option value="analyst">Analista</option><option value="viewer">Somente leitura</option></select></label><button className={s.btn+' '+s.primary} disabled={busy||!inviteEmail.trim()} onClick={()=>void inviteWorkspaceMember()}><KeyRound size={16}/>Convidar</button></div><div className={s.teamPermissionGuide}><div><b>Administradora</b><span>Opera a carteira e integrações.</span></div><div><b>Analista</b><span>Cria e atualiza projetos, tarefas e CS.</span></div><div><b>Somente leitura</b><span>Consulta os dados sem alterar registros.</span></div></div></section>
+  <section className={s.dashboardCard}><div className={s.dashboardTitle}><div><h2>Integrantes</h2><p>{workspaceMembers.length} acesso(s) associado(s) ao workspace.</p></div></div><div className={s.teamList}>{workspaceMembers.map(member=><article className={s.teamMember} key={member.user_id}><div><strong>{member.email||'Conta Vectta'}</strong><span>{roleLabel(member.role)} · {member.status==='active'?'Ativo':'Desativado'}</span></div>{member.role==='owner'?<span className={s.badge+' '+s.ok}>Proprietária</span>:<div className={s.teamMemberActions}><select className={s.input} value={member.role} disabled={busy} onChange={e=>void updateWorkspaceMember(member,{role:e.target.value as WorkspaceRole})}><option value="admin">Administradora</option><option value="analyst">Analista</option><option value="viewer">Somente leitura</option></select><button className={s.btn+' '+s.ghost} disabled={busy} onClick={()=>void updateWorkspaceMember(member,{status:member.status==='active'?'disabled':'active'})}>{member.status==='active'?'Desativar':'Reativar'}</button></div>}</article>)}</div></section>
+  <section className={s.dashboardCard+' '+s.dashboardWide}><div className={s.dashboardTitle}><div><h2>Convites</h2><p>Histórico dos acessos enviados pelo workspace.</p></div></div><div className={s.teamList}>{workspaceInvites.map(invite=><article className={s.teamMember} key={invite.id}><div><strong>{invite.email}</strong><span>{roleLabel(invite.role)} · {invite.status==='pending'?'Pendente':invite.status==='accepted'?'Aceito':invite.status==='revoked'?'Revogado':'Expirado'}</span></div>{invite.status==='pending'&&<button className={s.btn+' '+s.ghost} disabled={busy} onClick={()=>void revokeWorkspaceInvite(invite)}>Revogar</button>}</article>)}{!workspaceInvites.length&&<div className={s.empty}>Nenhum convite registrado.</div>}</div></section>
+ </div>:<section className={s.dashboardCard}><div className={s.empty}>Somente a proprietária do workspace pode convidar pessoas ou alterar permissões.</div></section>}</>;
  else if(view==='Meu perfil')body=<><header className={s.pageHead}><div><span className={s.eyebrow}>MEU PERFIL</span><h1>Seu espaço no Vectta.</h1><p>Foto, contato e formas seguras de recuperar o acesso.</p></div></header><div className={s.profileGrid}><section className={s.dashboardCard}><div className={s.profileHero}>{profileForm.avatar_url?<img src={profileForm.avatar_url} alt="Foto de perfil"/>:<div className={s.profileFallback}>{displayName[0]?.toUpperCase()}</div>}<div><h2>{displayName}</h2><p>{session?.user.email}</p></div></div><label className={s.uploadButton}><Settings2 size={16}/> Alterar foto<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{const file=e.target.files?.[0];if(file)void uploadAvatar(file)}}/></label></section><section className={s.dashboardCard}><div className={s.form}><label>Nome<input className={s.input} value={profileForm.full_name} onChange={e=>setProfileForm({...profileForm,full_name:e.target.value})}/></label><label>Nome do espaço<input className={s.input} value={profileForm.workspace_name} onChange={e=>setProfileForm({...profileForm,workspace_name:e.target.value})}/></label><label className={s.full}>Celular para recuperação futura<Headphones size={14}/><input className={s.input} value={profileForm.phone} onChange={e=>setProfileForm({...profileForm,phone:e.target.value})} placeholder="+55 31 99999-9999"/></label></div><div className={s.securityCallout}><KeyRound size={18}/><div><strong>Você não precisa depender da senha.</strong><p>Na tela de entrada, use “Entrar sem senha” para receber um acesso de uso único no e-mail. O celular fica cadastrado para habilitarmos OTP por SMS quando o provedor de mensagens for conectado.</p></div></div><button className={s.btn+' '+s.primary} onClick={saveProfile}>Salvar perfil</button></section></div></>; else if(view==='Pendências')body=<PendingWorkspace tasks={tasks} projects={projects} demo={demo} owner={displayName} onSave={savePendingTask} onOpen={setSelected}/>; else if(view==='Cronograma')body=<><header className={s.pageHead}><div><span className={s.eyebrow}>{view.toUpperCase()}</span><h1>Linha do tempo operacional.</h1><p>Bloqueio ou criticidade deve vir acompanhado de um plano de ação, não só de um alerta.</p></div></header><div className={s.stack}>{pending.map(t=>{const p=projects.find(x=>x.id===t.project_id);const plan=p?experiencePlan(p):null;return <article className={s.task+' '+(t.critical||t.blocked?s.taskWithPlan:'')} key={t.id}><button className={s.check} onClick={()=>toggleTask(t)}></button><div><strong>{t.title}</strong><span>{p?.client} · {t.owner} · {fmt(t.due_date)}</span>{(t.critical||t.blocked)&&plan&&<div className={s.taskStrategy}><b>{t.blocked?'Estratégia de desbloqueio':'Estratégia para item crítico'}</b><span>{t.blocked?'Defina um único responsável pela dependência, prazo de decisão e alternativa caso ela não seja resolvida.':plan.actions[0]}</span><small>{plan.sla} · {plan.cadence}</small></div>}</div><div>{t.critical&&<span className={s.badge+' '+s.bad}>Crítica</span>}{t.blocked&&<span className={s.badge+' '+s.warn}>Bloqueada</span>}</div></article>})}</div></>;
  else if(view==='Resultados'||view==='Rentabilidade'){const revenue=projects.reduce((a,p)=>a+Number(p.metadata?.revenue||0),0),cost=projects.reduce((a,p)=>a+Number(p.metadata?.actualHours||0)*Number(p.metadata?.hourCost||0),0);body=<><header className={s.pageHead}><div><span className={s.eyebrow}>RESULTADOS</span><h1>Resultado operacional.</h1><p>Valores calculados a partir da carteira atual.</p></div></header><section className={s.metrics}><div className={s.metric}><span>RECEITA CADASTRADA</span><b>R$ {revenue.toLocaleString('pt-BR')}</b></div><div className={s.metric}><span>CUSTO ESTIMADO</span><b>R$ {cost.toLocaleString('pt-BR')}</b></div><div className={s.metric}><span>RESULTADO OPERACIONAL</span><b>R$ {(revenue-cost).toLocaleString('pt-BR')}</b></div><div className={s.metric}><span>CLIENTES EM RISCO</span><b>{projects.filter(p=>risk(p).level!=='Baixo').length}</b></div></section></>}
  else if(view==='Riscos e estratégias')body=<><header className={s.pageHead}><div><span className={s.eyebrow}>RISCOS E ESTRATÉGIAS</span><h1>Risco que gera ação.</h1><p>O Vectta identifica o sinal, explica o impacto e propõe uma estratégia para proteger experiência, prazo e retenção.</p></div></header><section className={s.riskLevelSummary}>{(['Todos','Baixo','Médio','Alto'] as const).map(level=><button key={level} className={s.riskLevelCard+(overviewRisk===level?' '+s.riskLevelActive:'')} onClick={()=>setOverviewRisk(level)}><span>{level==='Todos'?'Toda a carteira':'Risco '+level.toLowerCase()}</span><b>{level==='Todos'?projects.length:riskCounts[level]}</b><small>{level==='Baixo'?'operação dentro do esperado':level==='Médio'?'acompanhamento necessário':level==='Alto'?'ação prioritária':'clientes avaliados'}</small></button>)}</section><div className={s.stack}>{projects.filter(p=>overviewRisk==='Todos'||risk(p).level===overviewRisk).sort((a,b)=>riskRank[risk(b).level]-riskRank[risk(a).level]).map(p=>{const rr=risk(p),plan=experiencePlan(p);return <section className={s.panel} key={p.id}><div className={s.sectionHead}><div><h2>{p.client}</h2><span>{p.system} · {p.phase}</span></div><div className={s.riskBadges}><span className={s.badge+' '+badge(rr.level)}>Risco {rr.level}</span><span className={s.badge+' '+experienceBadge(plan.level)}>Experiência {plan.level}</span></div></div>{rr.causes.map(cause=><div className={s.riskRule} key={cause}><AlertTriangle size={18}/><div><b>{cause}</b><p>Impacto potencial na confiança do cliente, no próximo marco e na percepção de valor.</p></div></div>)}{!rr.causes.length&&<div className={s.riskRule}><Check size={18}/><div><b>Sem gatilho automático de risco no momento.</b><p>{rr.level==='Baixo'?'Acompanhe os próximos marcos normalmente.':p.metadata?.risk_reason||'Classificação manual para acompanhamento.'}</p></div></div>}{plan.level!=='Saudável'&&<div className={s.recoveryPlan}><span className={s.eyebrow}>ESTRATÉGIA RECOMENDADA</span><div className={s.playbookActions}>{plan.actions.map((a,i)=><div key={a}><b>{i+1}</b><span>{a}</span></div>)}</div><div className={s.playbookMeta}><span><b>Responsável</b>{plan.owner}</span><span><b>Resposta</b>{plan.sla}</span><span><b>Cadência</b>{plan.cadence}</span><span><b>Critério de recuperação</b>{plan.success}</span></div><p><b>Como comunicar:</b> {plan.communication}</p></div>}</section>})}</div></>;
