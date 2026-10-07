@@ -107,6 +107,58 @@ export function summarizeCS(data:CSData,date=csToday()) {
   };
 }
 
+export type CSTimelineItem={
+  id:string;
+  date:string;
+  type:'feedback'|'plan';
+  title:string;
+  description:string;
+  meta:string;
+};
+
+export function client360(projectId:string,data:CSData,date=csToday()) {
+  const project=data.projects.find(p=>p.id===projectId);
+  if(!project)return null;
+  const health=assessCS(project,data,date);
+  const tasks=data.tasks.filter(t=>t.project_id===projectId);
+  const openTasks=tasks.filter(t=>!t.done);
+  const blocked=openTasks.filter(t=>t.blocked);
+  const late=openTasks.filter(t=>!!t.due_date&&t.due_date!>=date);
+  const plans=data.operations.filter(o=>o.project_id===projectId&&isCSPlan(o));
+  const activePlans=plans.filter(p=>!closed(p.status));
+  const upcoming=activePlans.filter(p=>!!p.due_date&&p.due_date>=date).sort((a,b)=>(a.due_date||'9999').localeCompare(b.due_date||'9999'))[0]||null;
+  const overdue=activePlans.filter(p=>!!p.due_date&&p.due_date<date).sort((a,b)=>(a.due_date||'9999').localeCompare(b.due_date||'9999'))[0]||null;
+  const timeline:CSTimelineItem[]=[
+    ...data.feedbacks.filter(f=>f.project_id===projectId).map(f=>({
+      id:'feedback:'+f.id,
+      date:f.created_at,
+      type:'feedback' as const,
+      title:'Voz do cliente',
+      description:f.comment||'Avaliação registrada sem comentário.',
+      meta:'CSAT '+(f.csat??'—')+' · NPS '+(f.nps??'—')+' · CES '+(f.ces??'—')
+    })),
+    ...plans.filter(p=>!!p.updated_at).map(p=>({
+      id:'plan:'+p.id,
+      date:p.updated_at!,
+      type:'plan' as const,
+      title:csCategory(p)+' · '+p.title,
+      description:p.evidence||p.strategy||p.detail||'Acompanhamento atualizado.',
+      meta:p.status+' · '+p.owner
+    }))
+  ].filter(item=>Number.isFinite(Date.parse(item.date))).sort((a,b)=>Date.parse(b.date)-Date.parse(a.date));
+  return {
+    project,
+    health,
+    plans,
+    activePlans,
+    openTasks,
+    blockedCount:blocked.length,
+    lateCount:late.length,
+    nextContact:overdue||upcoming,
+    timeline
+  };
+}
+
 export function ruleBasedCSReply(question:string,data:CSData,projectId:string) {
   const all=portfolioCS(data), items=projectId?all.filter(i=>i.project.id===projectId):all;
   if(!items.length)return 'Ainda não há clientes nesse contexto. Cadastre uma implantação para começar o acompanhamento.';
