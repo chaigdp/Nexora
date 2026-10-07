@@ -41,12 +41,11 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
     if(requestLock.current||!text.trim())return;
     const entry:Message={role:'user',content:text.trim(),scope};
     const history=[...messages,entry];setMessages(history);setQuestion('');setChatError('');
-    if(demo){setMessages([...history,{role:'assistant',content:ruleBasedCSReply(text,data,selected),mode:'rules',scope}]);return;}
     requestLock.current=true;setAsking(true);const controller=new AbortController();abortRef.current=controller;
     const timeout=window.setTimeout(()=>controller.abort(),55000);
     try{
       const response=await fetch('/api/chai',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},signal:controller.signal,
-        body:JSON.stringify({project_id:selected,messages:history.filter(m=>m.scope===scope&&m.mode!=='rules').slice(-8).map(({role,content})=>({role,content}))})});
+        body:JSON.stringify({demo,project_id:selected,messages:history.filter(m=>m.scope===scope&&m.mode!=='rules').slice(-8).map(({role,content})=>({role,content}))})});
       const result=await response.json() as {answer?:string;message?:string};
       if(!response.ok||!result.answer)throw new Error(result.message||'A chAI não conseguiu responder agora.');
       setMessages(m=>[...m,{role:'assistant',content:result.answer!,mode:'ai',scope}]);
@@ -109,7 +108,7 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
       <aside className={s.chaiPanel} aria-labelledby="chai-heading">
         <div className={s.chaiHeading}><span className={s.chaiAvatar}><Sparkles size={23}/></span><div><h2 id="chai-heading">chAI</h2><p>Sua parceira de sucesso do cliente</p></div></div>
         <label className={s.chaiScope}>Contexto da conversa<select className={s.input} value={selected} disabled={asking} onChange={e=>chooseClient(e.target.value)}><option value="">Toda a carteira</option>{data.projects.map(p=><option key={p.id} value={p.id}>{p.client}</option>)}</select></label>
-        <p className={s.chaiDisclosure}>{demo?'Modo demonstrativo por regras, sem IA generativa.':'A chAI consulta os registros da sua carteira para responder. As sugestões precisam da sua revisão.'}</p>
+        <p className={s.chaiDisclosure}>{demo?'Modo demonstrativo com IA real sobre dados fictícios.':'A chAI consulta os registros da sua carteira para responder. As sugestões precisam da sua revisão.'}</p>
         <div className={s.chaiConversation} role="log" aria-live="polite" aria-label="Conversa com a chAI">
           {!messages.length&&<div className={s.chaiWelcome}><MessageCircle size={25}/><h3>Vamos cuidar dessa relação?</h3><p>Posso ajudar a priorizar sua carteira, entender os sinais de atrito e preparar uma estratégia de reversão.</p></div>}
           {messages.map((m,i)=><article key={i} className={s.chaiMessage} data-role={m.role}><small>{m.role==='user'?'Você':m.mode==='ai'?'chAI · resposta de IA':'Sugestão por regras'} · {m.scope}</small><p>{m.content}</p>{m.role==='assistant'&&selected&&<button className={s.link} onClick={()=>createPlan(selected,m.content)}>Usar como rascunho de estratégia</button>}</article>)}
