@@ -1,0 +1,17 @@
+export type PendingTask={id:string;project_id:string;title:string;owner:string;due_date:string|null;done:boolean;critical:boolean;kind:string;priority:string;blocked:boolean;detail:Record<string,unknown>;updated_at?:string};
+export type PendingProject={id:string;client:string;phase:string};
+export type ActionPlan={impact:string;dependency:string;nextAction:string;success:string;evidence:string;nextContact:string;contactOwner:string};
+export const blankAction:ActionPlan={impact:'',dependency:'',nextAction:'',success:'',evidence:'',nextContact:'',contactOwner:''};
+export function readAction(t:PendingTask):ActionPlan{const raw=t.detail?.actionPlan;const p=raw&&typeof raw==='object'?raw as Record<string,unknown>:{};return Object.fromEntries(Object.keys(blankAction).map(k=>[k,typeof p[k]==='string'?p[k]:''])) as ActionPlan;}
+export function pendingToday(){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
+export function diagnose(t:PendingTask,today=pendingToday()){
+ const plan=readAction(t),late=!!t.due_date&&t.due_date<today,todayDue=t.due_date===today;
+ const gaps=[!t.owner.trim()&&'responsável',!t.due_date&&'prazo',!plan.impact&&'impacto',!plan.nextAction&&'próxima ação',!plan.success&&'critério de conclusão'].filter(Boolean) as string[];
+ const level=t.done?'Concluída':t.blocked?'Desbloquear':late?'Recuperar prazo':todayDue?'Agir hoje':gaps.length?'Completar plano':'Acompanhar';
+ const reasons=[t.blocked&&'Execução bloqueada',late&&'Prazo vencido',todayDue&&'Vence hoje',t.critical&&'Marcada como crítica',t.priority==='Alta'&&'Prioridade alta'].filter(Boolean) as string[];
+ const rank=t.done?-1:(t.blocked?100:0)+(late?60:0)+(todayDue?40:0)+(t.critical?25:0)+(t.priority==='Alta'?10:0);
+ const steps=t.blocked?['Identifique exatamente o insumo ou a decisão que falta.','Combine com quem pode resolver uma data de retorno.','Se não houver retorno, envolva a liderança com impacto e alternativa.']:late?['Confirme o que falta e o impacto do atraso com o responsável.','Negocie um prazo viável e registre a próxima ação.','Avise as pessoas afetadas e acompanhe o novo combinado.']:t.critical?['Divida a entrega em uma ação executável hoje.','Valide o critério de aceite antes de avançar.','Confirme a evidência com quem aprova o resultado.']:['Defina uma próxima ação concreta, com responsável e prazo.','Confira se há insumos ou decisões de outra pessoa.','Registre o resultado e valide o critério de conclusão.'];
+ return {plan,late,todayDue,gaps,level,reasons,rank,steps};
+}
+export function orderPending(tasks:PendingTask[],today=pendingToday()){return [...tasks].sort((a,b)=>diagnose(b,today).rank-diagnose(a,today).rank||(a.due_date||'9999').localeCompare(b.due_date||'9999')||a.title.localeCompare(b.title,'pt-BR'));}
+export function validatePending(t:PendingTask){const p=readAction(t);if(!t.project_id||!t.title.trim()||!t.owner.trim()||!t.due_date)return 'Informe cliente, título, responsável e prazo.';if(!p.impact.trim()||!p.nextAction.trim()||!p.success.trim())return 'Registre o impacto, a próxima ação e o critério de conclusão.';if(t.blocked&&!p.dependency.trim())return 'Explique o que está impedindo o avanço.';if(t.done&&t.blocked)return 'Resolva o bloqueio antes de concluir.';if(t.done&&!p.evidence.trim())return 'Registre a evidência do resultado antes de concluir.';return '';}

@@ -1,0 +1,8 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {diagnose,orderPending,validatePending,readAction} from '../lib/pending-strategy.ts';
+const base={id:'1',project_id:'p',title:'Validar',owner:'Chai',due_date:'2026-10-08',done:false,critical:false,kind:'Pendência',priority:'Normal',blocked:false,detail:{progress:40,actionPlan:{impact:'Impede a validação',nextAction:'Conferir amostra',success:'Amostra aprovada',evidence:''}}};
+test('bloqueio precede atraso crítico e conclusão não entra na prioridade',()=>{const blocked={...base,id:'blocked',blocked:true};const late={...base,id:'late',due_date:'2026-10-01',critical:true,priority:'Alta'};assert.deepEqual(orderPending([{...late,id:'done',done:true},late,blocked],'2026-10-07').map(t=>t.id),['blocked','late','done']);});
+test('vencimento hoje não é atraso e faltas são explícitas',()=>{const d=diagnose({...base,due_date:'2026-10-07',detail:{}},'2026-10-07');assert.equal(d.todayDue,true);assert.equal(d.late,false);assert.deepEqual(d.gaps,['impacto','próxima ação','critério de conclusão']);});
+test('conclusão requer evidência e bloqueio requer dependência',()=>{assert.match(validatePending({...base,done:true}),/evidência/);assert.match(validatePending({...base,blocked:true}),/impedindo/);assert.equal(validatePending({...base,done:true,detail:{actionPlan:{...base.detail.actionPlan,evidence:'Aceite registrado'}}}),'');});
+test('dados antigos sem plano permanecem legíveis',()=>{assert.equal(readAction({...base,detail:{progress:40}}).impact,'');assert.equal(diagnose({...base,detail:{progress:40}}).gaps.length,3);assert.equal(base.detail.progress,40);});
