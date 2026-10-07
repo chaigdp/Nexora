@@ -3,6 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import {ArrowUpRight,CalendarDays,CheckCircle2,Clock3,HeartPulse,ListTodo,MessageCircle,Plus,Send,Sparkles,Target,X} from 'lucide-react';
 import {buildCSDraft,client360,closed,csCategories,csCategory,csStatuses,csToday,inferCSCategory,summarizeCS,type CSData,type CSOperation} from '../lib/customer-success';
 import s from '../app/vectta.module.css';
+import ChaiAssistant from './chai-assistant';
 
 type Props={data:CSData;demo:boolean;token:string;owner:string;onSave:(plan:CSOperation)=>Promise<void>;onOpen:(id:string)=>void};
 type Message={role:'user'|'assistant';content:string;mode?:'ai'|'rules';scope:string};
@@ -13,6 +14,7 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
   const [filter,setFilter]=useState('Todos'),[tier,setTier]=useState('Todos'),[search,setSearch]=useState(''),[selected,setSelected]=useState('');
   const [draft,setDraft]=useState<CSOperation|null>(null),[saving,setSaving]=useState(false),[saveError,setSaveError]=useState(''),[notice,setNotice]=useState('');
   const [question,setQuestion]=useState(''),[messages,setMessages]=useState<Message[]>([]),[asking,setAsking]=useState(false),[chatError,setChatError]=useState('');
+  const [assistantCommand,setAssistantCommand]=useState<{id:number;prompt:string;projectId?:string}|null>(null);
   const requestLock=useRef(false),saveLock=useRef(false),editor=useRef<HTMLElement>(null),chatEnd=useRef<HTMLDivElement>(null),abortRef=useRef<AbortController|null>(null);
   useEffect(()=>()=>abortRef.current?.abort(),[]);
   useEffect(()=>{if(draft)editor.current?.scrollIntoView({behavior:'smooth',block:'start'});},[draft?.id,draft?.project_id]);
@@ -102,7 +104,7 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
           </div>
           {current.latest&&<div className={s.csVoice}><span>VOZ DO CLIENTE · {date(current.latest.created_at.slice(0,10))}</span><strong>{current.latest.comment||'Avaliação registrada sem comentário.'}</strong><small>CSAT {current.latest.csat??'—'} · NPS {current.latest.nps??'—'} · CES {current.latest.ces??'—'}</small></div>}
           <div className={s.csNext}><Target size={20}/><div><strong>Próxima ação sugerida por regras</strong><p>{current.nextAction}</p></div></div>
-          <div className={s.csFocusActions}><button className={s.btn+' '+s.primary} onClick={()=>createPlan(current.project.id)}>Transformar em acompanhamento</button><button className={s.btn+' '+s.ghost} disabled={asking} onClick={()=>void ask('Analise este cliente em 360 graus. Priorize os riscos, o relacionamento, as pendências e o próximo passo mais importante.')}>Pedir análise 360° à chAI</button></div>
+          <div className={s.csFocusActions}><button className={s.btn+' '+s.primary} onClick={()=>createPlan(current.project.id)}>Transformar em acompanhamento</button><button className={s.btn+' '+s.ghost} onClick={()=>setAssistantCommand({id:Date.now(),projectId:current.project.id,prompt:'Analise este cliente em 360 graus. Priorize os riscos, o relacionamento, as pendências e o próximo passo mais importante.'})}>Pedir análise 360° à chAI</button></div>
         </section>}
         {draft&&<section ref={editor} className={s.dashboardCard+' '+s.csEditor} aria-label="Editor de acompanhamento">
           <div className={s.dashboardTitle}><h2>{draft.id?'Editar acompanhamento':'Novo acompanhamento'}</h2><button className={s.btn+' '+s.ghost} disabled={saving} onClick={()=>setDraft(null)} aria-label="Fechar editor"><X size={18}/></button></div>
@@ -126,20 +128,7 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
           </article>)}</div>{!scopedPlans.length&&<div className={s.empty}>Crie um acompanhamento para organizar ações, prazos e retornos.</div>}
         </section>
       </div>
-      <aside className={s.chaiPanel} aria-labelledby="chai-heading">
-        <div className={s.chaiHeading}><span className={s.chaiAvatar}><Sparkles size={23}/></span><div><h2 id="chai-heading">chAI</h2><p>Sua parceira de sucesso do cliente</p></div></div>
-        <label className={s.chaiScope}>Contexto da conversa<select className={s.input} value={selected} disabled={asking} onChange={e=>chooseClient(e.target.value)}><option value="">Toda a carteira</option>{data.projects.map(p=><option key={p.id} value={p.id}>{p.client}</option>)}</select></label>
-        <p className={s.chaiDisclosure}>{demo?'Modo demonstrativo com IA real sobre dados fictícios.':'A chAI consulta os registros da sua carteira para responder. As sugestões precisam da sua revisão.'}</p>
-        <div className={s.chaiConversation} role="log" aria-live="polite" aria-label="Conversa com a chAI">
-          {!messages.length&&<div className={s.chaiWelcome}><MessageCircle size={25}/><h3>Vamos cuidar dessa relação?</h3><p>Posso ajudar a priorizar sua carteira, entender os sinais de atrito e preparar uma estratégia de reversão.</p></div>}
-          {messages.map((m,i)=><article key={i} className={s.chaiMessage} data-role={m.role}><small>{m.role==='user'?'Você':m.mode==='ai'?'chAI · resposta de IA':'Sugestão por regras'} · {m.scope}</small><p>{m.content}</p>{m.role==='assistant'&&selected&&<button className={s.link} onClick={()=>{const intent=messages.slice(0,i).reverse().find(x=>x.role==='user'&&x.scope===m.scope)?.content||'';createPlan(selected,m.content,intent)}}>Transformar em plano de CS</button>}</article>)}
-          {asking&&<p role="status" className={s.chaiDisclosure}>A chAI está analisando os registros...</p>}<div ref={chatEnd}/>
-        </div>
-        {chatError&&<div className={s.labError} role="alert">{chatError}</div>}
-        <div className={s.chaiSuggestions}>{(selected?['Analise este cliente em 360°','Monte um plano para os próximos 7 dias','O que está faltando registrar?','Sugira uma mensagem executiva']:['Quem precisa de atenção?','Priorize minha carteira','Quais contatos estão atrasados?','Onde há risco de reversão?']).map(q=><button key={q} disabled={asking||!data.projects.length} onClick={()=>void ask(q)}>{q}</button>)}</div>
-        <form className={s.chaiComposer} onSubmit={e=>{e.preventDefault();void ask();}}><label htmlFor="chai-question">Pergunte à chAI</label><textarea id="chai-question" value={question} onChange={e=>setQuestion(e.target.value)} maxLength={2000} placeholder="Como posso melhorar a saúde desta carteira?" disabled={asking}/><div><small>Conversa desta sessão</small><button className={s.btn+' '+s.primary} type="submit" disabled={asking||!question.trim()||!data.projects.length}><Send size={15}/>Perguntar</button></div></form>
-        <small className={s.chaiFooter}>Nenhuma mensagem é enviada ao cliente. Uma sugestão só vira plano quando você a revisar e salvar.</small>
-      </aside>
+      <ChaiAssistant module="cs" demo={demo} token={token} projects={data.projects.map(p=>({id:p.id,client:p.client}))} projectId={selected} onProjectChange={chooseClient} command={assistantCommand} onUseAnswer={(answer,intent)=>createPlan(selected,answer,intent)}/>
     </div>
   </>;
 }
