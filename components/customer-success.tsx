@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {ArrowUpRight,CheckCircle2,HeartPulse,MessageCircle,Plus,Send,Sparkles,Target,X} from 'lucide-react';
-import {buildCSDraft,closed,csCategories,csCategory,csStatuses,csToday,inferCSCategory,isCSPlan,portfolioCS,type CSData,type CSOperation} from '../lib/customer-success';
+import {buildCSDraft,closed,csCategories,csCategory,csStatuses,inferCSCategory,summarizeCS,type CSData,type CSOperation} from '../lib/customer-success';
 import s from '../app/vectta.module.css';
 
 type Props={data:CSData;demo:boolean;token:string;owner:string;onSave:(plan:CSOperation)=>Promise<void>;onOpen:(id:string)=>void};
@@ -17,9 +17,8 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
   useEffect(()=>()=>abortRef.current?.abort(),[]);
   useEffect(()=>{if(draft)editor.current?.scrollIntoView({behavior:'smooth',block:'start'});},[draft?.id,draft?.project_id]);
   useEffect(()=>{chatEnd.current?.scrollIntoView({behavior:'smooth',block:'nearest'});},[messages.length]);
-  const portfolio=portfolioCS(data),current=portfolio.find(x=>x.project.id===selected);
-  const plans=data.operations.filter(isCSPlan),activePlans=plans.filter(p=>!closed(p.status));
-  const highPortfolio=portfolio.filter(x=>x.project.metadata?.cs_portfolio==='Alta');
+  const summary=summarizeCS(data),portfolio=summary.portfolio,current=portfolio.find(x=>x.project.id===selected);
+  const plans=summary.plans,activePlans=summary.activePlans,highPortfolio=summary.highPortfolio;
   const visible=portfolio.filter(x=>(filter==='Todos'||x.level===filter)&&(tier==='Todos'||x.project.metadata?.cs_portfolio===tier)&&x.project.client.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
   const scope=current?.project.client||'Toda a carteira';
   const scopedPlans=plans.filter(p=>!selected||p.project_id===selected).sort((a,b)=>Number(closed(a.status))-Number(closed(b.status))||(a.due_date||'9999').localeCompare(b.due_date||'9999'));
@@ -63,10 +62,10 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
     {demo&&<p className={s.csDemo}>Demonstração com dados fictícios. Os planos ficam apenas nesta sessão e a chAI usa IA real sobre essa base fictícia.</p>}
     <section className={s.csKpis} aria-label="Indicadores de sucesso do cliente">
       <button onClick={()=>{setTier('Alta');setFilter('Todos')}} className={s.csKpi}><span>CARTEIRA ALTA</span><b>{highPortfolio.length}</b><small>contas estratégicas de maior valor</small></button>
-      <button onClick={()=>{setTier('Todos');setFilter('Crítico')}} className={s.csKpi}><span>PRECISAM DE AÇÃO</span><b>{portfolio.filter(x=>x.level==='Crítico').length}</b><small>clientes em situação crítica</small></button>
-      <button onClick={()=>{setTier('Todos');setFilter('Atenção')}} className={s.csKpi}><span>EM ATENÇÃO</span><b>{portfolio.filter(x=>x.level==='Atenção').length}</b><small>acompanhamento preventivo</small></button>
-      <div className={s.csKpi}><span>REVERSÕES ABERTAS</span><b>{activePlans.filter(p=>csCategory(p)==='Reversão').length}</b><small>planos em condução</small></div>
-      <div className={s.csKpi}><span>CONTATOS ATRASADOS</span><b>{activePlans.filter(p=>p.due_date&&p.due_date<csToday()).length}</b><small>próximo contato vencido</small></div>
+      <button onClick={()=>{setTier('Todos');setFilter('Crítico')}} className={s.csKpi}><span>PRECISAM DE AÇÃO</span><b>{summary.critical}</b><small>clientes em situação crítica</small></button>
+      <button onClick={()=>{setTier('Todos');setFilter('Atenção')}} className={s.csKpi}><span>EM ATENÇÃO</span><b>{summary.attention}</b><small>acompanhamento preventivo</small></button>
+      <div className={s.csKpi}><span>REVERSÕES ABERTAS</span><b>{summary.reversalsOpen}</b><small>planos em condução</small></div>
+      <div className={s.csKpi}><span>CONTATOS ATRASADOS</span><b>{summary.overdueContacts}</b><small>próximo contato vencido</small></div>
     </section>
     {notice&&<div role="status" className={s.metaSuccess}><CheckCircle2 size={18}/>{notice}</div>}
     <div className={s.csLayout}>
@@ -106,7 +105,7 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
         <section className={s.dashboardCard}>
           <div className={s.dashboardTitle}><div><h2>Planos e próximos contatos</h2><p>{selected?scope:'Toda a carteira'} · {scopedPlans.length} registros</p></div>{selected&&<button className={s.link} disabled={asking} onClick={()=>chooseClient('')}>Ver todos</button>}</div>
           <div className={s.csPlans}>{scopedPlans.map(p=><article key={p.id} className={s.csPlan}>
-            <div><span className={s.badge}>{csCategory(p)}</span><span>{p.status}</span></div><h3>{p.title}</h3><small>{data.projects.find(x=>x.id===p.project_id)?.client} · {p.owner}</small><p>{p.strategy}</p><div><span className={!closed(p.status)&&p.due_date&&p.due_date<csToday()?s.csOverdue:''}>Próximo contato: {date(p.due_date)}</span><button className={s.link} onClick={()=>{setDraft(p);setSaveError('');}}>Atualizar</button></div>{p.evidence&&<details><summary>Histórico e resultado</summary><p>{p.evidence}</p></details>}
+            <div><span className={s.badge}>{csCategory(p)}</span><span>{p.status}</span></div><h3>{p.title}</h3><small>{data.projects.find(x=>x.id===p.project_id)?.client} · {p.owner}</small><p>{p.strategy}</p><div><span className={!closed(p.status)&&p.due_date&&p.due_date<new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())?s.csOverdue:''}>Próximo contato: {date(p.due_date)}</span><button className={s.link} onClick={()=>{setDraft(p);setSaveError('');}}>Atualizar</button></div>{p.evidence&&<details><summary>Histórico e resultado</summary><p>{p.evidence}</p></details>}
           </article>)}</div>{!scopedPlans.length&&<div className={s.empty}>Crie um acompanhamento para organizar ações, prazos e retornos.</div>}
         </section>
       </div>
