@@ -2,13 +2,29 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {registerHooks} from 'node:module';
 registerHooks({resolve(specifier,context,next){return next(specifier.startsWith('.')&&!/\.[a-z]+$/.test(specifier)?specifier+'.ts':specifier,context);}});
-const {assessCS,portfolioCS}=await import('../lib/customer-success.ts');
+const {assessCS,portfolioCS,inferCSCategory,buildCSDraft,csCategory,isCSPlan}=await import('../lib/customer-success.ts');
 const {handleChai,parseChatRequest}=await import('../lib/chai-assistant.ts');
 const project={id:'11111111-1111-4111-8111-111111111111',client:'Cliente teste',owner:'Analista',phase:'Acompanhamento',due_date:null,manual_risk_level:'Baixo'};
 const base={projects:[project],tasks:[],feedbacks:[],operations:[]};
 const feedback={id:'f1',project_id:project.id,csat:1,nps:2,ces:null,comment:'Preciso de retorno',created_at:'2026-10-05T12:00:00Z'};
 const op={id:'o1',project_id:project.id,kind:'Risco',title:'Reversão',owner:'Analista',due_date:'2026-10-07',status:'Aberto',priority:'Alta',detail:'Validar',strategy:'Ouvir',evidence:'',progress:0,dependency:'CS:Reversão'};
 
+test('chAI intent becomes the right CS plan category',()=>{
+  assert.equal(inferCSCategory('Como conduzir a reversão e evitar cancelamento?'),'Reversão');
+  assert.equal(inferCSCategory('Cliente reclamou e existe atrito na relação'),'Atrito');
+  assert.equal(inferCSCategory('Precisamos melhorar adoção e treinamento'),'Adoção');
+  assert.equal(inferCSCategory('Há oportunidade de expansão e upgrade'),'Expansão');
+  assert.equal(inferCSCategory('Faça um acompanhamento executivo'),'Acompanhamento');
+});
+test('AI draft has category priority and a reviewable follow-up date',()=>{
+  const draft=buildCSDraft(project,'Analista','Ouvir a causa e combinar próximo passo.','Reversão','2026-10-07');
+  assert.equal(draft.due_date,'2026-10-09');
+  assert.equal(draft.priority,'Alta');
+  assert.equal(draft.kind,'Risco');
+  assert.equal(csCategory(draft),'Reversão');
+  assert.ok(isCSPlan(draft));
+  assert.match(draft.title,/Reversão/);
+});
 test('missing data does not become a healthy score',()=>{const x=assessCS(project,base,'2026-10-06');assert.equal(x.score,null);assert.equal(x.level,'Sem dados');assert.ok(x.gaps.length);});
 test('risk, feedback and open reversal produce explainable score',()=>{const p={...project,manual_risk_level:'Alto'};const x=assessCS(p,{...base,feedbacks:[feedback],operations:[op]},'2026-10-06');assert.equal(x.score,5);assert.equal(x.level,'Crítico');assert.equal(x.signals.length,3);});
 test('old feedback does not pretend to be current, and closed plans do not penalize',()=>{const x=assessCS(project,{...base,feedbacks:[{...feedback,created_at:'2025-01-01T00:00:00Z'}],operations:[{...op,status:'Concluído',evidence:'Retorno registrado'}]},'2026-10-06');assert.equal(x.score,100);assert.ok(x.gaps.includes('Avaliação do cliente desatualizada'));assert.equal(x.openPlans.length,0);});
