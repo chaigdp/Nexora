@@ -1,4 +1,4 @@
-export type CSProject = {id:string;client:string;owner:string;phase:string;due_date:string|null;manual_risk_level:string|null;segment?:string};
+export type CSProject = {id:string;client:string;owner:string;phase:string;due_date:string|null;manual_risk_level:string|null;segment?:string;metadata?:Record<string,any>};
 export type CSTask = {id:string;project_id:string;done:boolean;critical:boolean;blocked:boolean;due_date:string|null;title:string};
 export type CSFeedback = {id:string;project_id:string;csat:number|null;nps:number|null;ces:number|null;comment:string;created_at:string};
 export type CSOperation = {id:string;project_id:string;kind:string;title:string;owner:string;due_date:string|null;status:string;priority:string;detail:string;evidence:string;strategy:string;progress:number;dependency?:string;updated_at?:string};
