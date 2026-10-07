@@ -1,12 +1,12 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {ArrowUpRight,CheckCircle2,HeartPulse,MessageCircle,Plus,Send,Sparkles,Target,X} from 'lucide-react';
-import {closed,csCategories,csCategory,csStatuses,csToday,isCSPlan,portfolioCS,type CSData,type CSOperation} from '../lib/customer-success';
+import {buildCSDraft,closed,csCategories,csCategory,csStatuses,inferCSCategory,isCSPlan,portfolioCS,type CSData,type CSOperation} from '../lib/customer-success';
 import s from '../app/vectta.module.css';
 
 type Props={data:CSData;demo:boolean;token:string;owner:string;onSave:(plan:CSOperation)=>Promise<void>;onOpen:(id:string)=>void};
 type Message={role:'user'|'assistant';content:string;mode?:'ai'|'rules';scope:string};
-const emptyPlan=(project:string,owner:string):CSOperation=>({id:'',project_id:project,kind:'Processo',title:'',owner,due_date:csToday(),status:'Aberto',priority:'Normal',detail:'',strategy:'',evidence:'',progress:0,dependency:'CS:Acompanhamento'});
+
 const date=(value:string|null)=>value?new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(value+'T12:00:00Z')):'Sem data';
 
 export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Props){
@@ -23,10 +23,15 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
   const visible=portfolio.filter(x=>(filter==='Todos'||x.level===filter)&&(tier==='Todos'||x.project.metadata?.cs_portfolio===tier)&&x.project.client.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
   const scope=current?.project.client||'Toda a carteira';
   const scopedPlans=plans.filter(p=>!selected||p.project_id===selected).sort((a,b)=>Number(closed(a.status))-Number(closed(b.status))||(a.due_date||'9999').localeCompare(b.due_date||'9999'));
-  function createPlan(projectId=selected, suggestion=''){
+  function createPlan(projectId=selected,suggestion='',intent=''){
     const item=portfolio.find(x=>x.project.id===(projectId||portfolio[0]?.project.id));
     if(!item)return;
-    setDraft({...emptyPlan(item.project.id,item.project.owner||owner),title:'Acompanhamento de '+item.project.client,strategy:(suggestion||item.nextAction).slice(0,2000),priority:item.level==='Crítico'?'Alta':'Normal'});setSaveError('');setNotice('');
+    const fromChai=Boolean(suggestion.trim());
+    const category=fromChai?inferCSCategory(intent+' '+suggestion):'Acompanhamento';
+    const plan=buildCSDraft(item.project,item.project.owner||owner,suggestion||item.nextAction,category);
+    if(!fromChai&&item.level==='Crítico')plan.priority='Alta';
+    setDraft(plan);setSaveError('');
+    setNotice(fromChai?'Rascunho criado pela chAI como '+category+'. Revise contexto, prazo e critério de sucesso antes de salvar.':'');
   }
   async function save(event:React.FormEvent){
     event.preventDefault();if(!draft||saveLock.current)return;
@@ -111,7 +116,7 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
         <p className={s.chaiDisclosure}>{demo?'Modo demonstrativo com IA real sobre dados fictícios.':'A chAI consulta os registros da sua carteira para responder. As sugestões precisam da sua revisão.'}</p>
         <div className={s.chaiConversation} role="log" aria-live="polite" aria-label="Conversa com a chAI">
           {!messages.length&&<div className={s.chaiWelcome}><MessageCircle size={25}/><h3>Vamos cuidar dessa relação?</h3><p>Posso ajudar a priorizar sua carteira, entender os sinais de atrito e preparar uma estratégia de reversão.</p></div>}
-          {messages.map((m,i)=><article key={i} className={s.chaiMessage} data-role={m.role}><small>{m.role==='user'?'Você':m.mode==='ai'?'chAI · resposta de IA':'Sugestão por regras'} · {m.scope}</small><p>{m.content}</p>{m.role==='assistant'&&selected&&<button className={s.link} onClick={()=>createPlan(selected,m.content)}>Usar como rascunho de estratégia</button>}</article>)}
+          {messages.map((m,i)=><article key={i} className={s.chaiMessage} data-role={m.role}><small>{m.role==='user'?'Você':m.mode==='ai'?'chAI · resposta de IA':'Sugestão por regras'} · {m.scope}</small><p>{m.content}</p>{m.role==='assistant'&&selected&&<button className={s.link} onClick={()=>{const intent=messages.slice(0,i).reverse().find(x=>x.role==='user'&&x.scope===m.scope)?.content||'';createPlan(selected,m.content,intent)}}>Transformar em plano de CS</button>}</article>)}
           {asking&&<p role="status" className={s.chaiDisclosure}>A chAI está analisando os registros...</p>}<div ref={chatEnd}/>
         </div>
         {chatError&&<div className={s.labError} role="alert">{chatError}</div>}
