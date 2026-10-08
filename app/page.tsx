@@ -17,8 +17,8 @@ import type {CSOperation} from '../lib/customer-success';
 const SUPA=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://pldxmxgrgyfwtnhxqaji.supabase.co';
 const KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publishable_jYHHJD8SzmFb2cuJvRcPIQ_Gt-0yTYC';
 const VT='/vectta-vt-mark-v2.svg';
-const MASCOT='/chai-home-dashboard.webp';
-const HOME_MASCOT='/chai-home-dashboard.webp';
+const MASCOT='/chai-home-dashboard-hd.webp';
+const HOME_MASCOT='/chai-home-dashboard-hd.webp';
 const CHAI='/chai-logo.svg';
 
 type Risk='Baixo'|'Médio'|'Alto';
