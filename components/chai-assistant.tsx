@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {ChevronDown,ChevronUp,MessageCircle,Send} from 'lucide-react';
+import {X,MessageCircle,Send,Sparkles} from 'lucide-react';
 import {chaiModules,type ChaiModule} from '../lib/chai-modules';
 import s from '../app/vectta.module.css';
 
@@ -28,7 +28,9 @@ export default function ChaiAssistant({module,demo,token,projects,projectId='',o
   const [collapsed,setCollapsed]=useState(true);
   const requestLock=useRef(false);
   const abortRef=useRef<AbortController|null>(null);
-  const endRef=useRef<HTMLDivElement>(null);
+  const conversationRef=useRef<HTMLDivElement>(null);
+  const launcherRef=useRef<HTMLButtonElement>(null);
+  const closeRef=useRef<HTMLButtonElement>(null);
   const lastCommand=useRef<number|null>(null);
 
   const contextName=projects.find(p=>p.id===contextId)?.client||'Toda a carteira';
@@ -36,7 +38,8 @@ export default function ChaiAssistant({module,demo,token,projects,projectId='',o
 
   useEffect(()=>{setContextId(projectId||'');},[projectId]);
   useEffect(()=>{setMessages([]);setError('');},[module,contextId]);
-  useEffect(()=>{endRef.current?.scrollIntoView({block:'nearest'});},[messages.length]);
+  useEffect(()=>{const box=conversationRef.current;if(box)box.scrollTop=box.scrollHeight;},[messages.length,asking,collapsed]);
+  useEffect(()=>{if(!collapsed)closeRef.current?.focus();},[collapsed]);
   useEffect(()=>{
     if(typeof window==='undefined')return;
     const media=window.matchMedia('(max-width: 700px)');
@@ -96,29 +99,30 @@ export default function ChaiAssistant({module,demo,token,projects,projectId='',o
   }
 
   const relevant=messages.filter(m=>m.scope===scope);
-  return <aside className={s.chaiPanel+(collapsed?' '+s.chaiCollapsed:'')} aria-label={'Assistente chAI · '+config.label}>
-    <div className={s.chaiCompactHead}>
-      <div className={s.chaiIdentity}>
-        <img src="/chai-logo.svg" alt="chAI"/>
-        <div><span>{config.eyebrow}</span><strong>{config.label}</strong></div>
+  function close(){setCollapsed(true);requestAnimationFrame(()=>launcherRef.current?.focus());}
+
+  return <div className={s.assistantDock} onKeyDown={e=>{if(e.key==='Escape'&&!collapsed){e.preventDefault();close();}}}>
+    {!collapsed&&<aside id="chai-conversation-panel" className={s.assistantBubble} aria-label={'Assistente chAI · '+config.label}>
+      <header className={s.assistantHeader}>
+        <div className={s.assistantIdentity}><span className={s.assistantAvatar}><img src="/chai-curious-hd.webp" width={1122} height={1402} alt=""/></span><div><img className={s.assistantWordmark} src="/chai-logo.svg" alt="chAI"/><span>{config.label}</span></div></div>
+        <button ref={closeRef} type="button" className={s.assistantClose} onClick={close} aria-label="Recolher conversa com a chAI"><X size={19}/></button>
+      </header>
+      <label className={s.assistantScope}><span>Analisando</span><select value={contextId} disabled={asking} onChange={e=>changeContext(e.target.value)}><option value="">Toda a carteira</option>{projects.map(p=><option key={p.id} value={p.id}>{p.client}</option>)}</select></label>
+      <div ref={conversationRef} className={s.assistantConversation} role="log" aria-label="Conversa com a chAI" aria-live="polite" aria-relevant="additions text" aria-busy={asking}>
+        {!relevant.length&&<div className={s.assistantWelcome}><span><Sparkles size={22}/></span><h2>Vamos pensar juntas?</h2><p>{config.intro}</p><small>{demo?'Análise com os dados fictícios da demonstração.':'Análise baseada nos registros do seu espaço.'}</small></div>}
+        {relevant.map((m,i)=><article key={i} className={s.assistantMessage} data-role={m.role}><small>{m.role==='user'?'Você':'chAI'}</small><p>{m.content}</p>{m.role==='assistant'&&onUseAnswer&&contextId&&<button className={s.link} onClick={()=>{const intent=[...relevant.slice(0,i)].reverse().find(x=>x.role==='user')?.content||'';onUseAnswer(m.content,intent)}}>Transformar em plano de CS</button>}</article>)}
+        {asking&&<p className={s.assistantThinking}><span/><span/><span/> Analisando sua carteira...</p>}
       </div>
-      <button className={s.chaiToggle} onClick={()=>setCollapsed(v=>!v)} aria-label={collapsed?'Abrir chAI':'Recolher chAI'}>{collapsed?<ChevronUp size={17}/>:<ChevronDown size={17}/>}</button>
-    </div>
-    {!collapsed&&<>
-      <p className={s.chaiIntro}>{config.intro}</p>
-      <label className={s.chaiScope}>Contexto da análise<select className={s.input} value={contextId} disabled={asking} onChange={e=>changeContext(e.target.value)}><option value="">Toda a carteira</option>{projects.map(p=><option key={p.id} value={p.id}>{p.client}</option>)}</select></label>
-      <div className={s.chaiConversation} role="log" aria-live="polite">
-        {!relevant.length&&<div className={s.chaiWelcome}><MessageCircle size={20}/><strong>O que você quer entender?</strong><p>{demo?'Estou usando a base fictícia desta demonstração.':'Vou analisar os dados registrados no Vectta para este módulo.'}</p></div>}
-        {relevant.map((m,i)=><article key={i} className={s.chaiMessage} data-role={m.role}><small>{m.role==='user'?'Você':'chAI'} · {contextName}</small><p>{m.content}</p>{m.role==='assistant'&&onUseAnswer&&contextId&&<button className={s.link} onClick={()=>{const intent=[...relevant.slice(0,i)].reverse().find(x=>x.role==='user')?.content||'';onUseAnswer(m.content,intent)}}>Transformar em plano de CS</button>}</article>)}
-        {asking&&<p className={s.chaiThinking}>Analisando os registros...</p>}
-        <div ref={endRef}/>
-      </div>
-      {error&&<div className={s.labError} role="alert">{error}</div>}
-      <div className={s.chaiSuggestions}>{config.suggestions.map(q=><button key={q} disabled={asking||!projects.length} onClick={()=>void ask(q)}>{q}</button>)}</div>
-      <form className={s.chaiComposer} onSubmit={e=>{e.preventDefault();void ask();}}>
-        <textarea aria-label="Pergunte à chAI" value={question} onChange={e=>setQuestion(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();if(!asking&&question.trim())void ask();}}} maxLength={2000} placeholder={config.placeholder} disabled={asking}/>
-        <div><small>Enter envia · Shift + Enter cria nova linha.</small><button className={s.btn+' '+s.primary} type="submit" disabled={asking||!question.trim()}><Send size={14}/>Perguntar</button></div>
+      {error&&<div className={s.assistantError} role="alert">{error}</div>}
+      <details className={s.assistantPrompts} open={!relevant.length}><summary>Ideias para começar</summary><div>{config.suggestions.map(q=><button key={q} disabled={asking||!projects.length} onClick={()=>void ask(q)}>{q}</button>)}</div></details>
+      <form className={s.assistantComposer} onSubmit={e=>{e.preventDefault();void ask();}}>
+        <div><textarea aria-label="Pergunte à chAI" value={question} onChange={e=>setQuestion(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();if(!asking&&question.trim())void ask();}}} maxLength={2000} rows={2} placeholder="Qual é o próximo passo?" disabled={asking}/><button type="submit" aria-label="Enviar pergunta" disabled={asking||!question.trim()}><Send size={18}/></button></div>
+        <small>Você decide. A chAI ajuda a planejar.</small>
       </form>
-    </>}
-  </aside>;
+    </aside>}
+    <button ref={launcherRef} type="button" className={s.assistantLauncher} aria-label={collapsed?'Conversar com a chAI':'Recolher conversa com a chAI'} aria-expanded={!collapsed} aria-controls="chai-conversation-panel" onClick={()=>collapsed?setCollapsed(false):close()}>
+      {collapsed&&<span className={s.assistantTeaser}><strong>Uma ideia para avançar?</strong><span>Converse com a chAI</span></span>}
+      <span className={s.assistantOrb}>{collapsed?<><img src="/chai-curious-hd.webp" width={1122} height={1402} alt=""/><span><MessageCircle size={13}/></span></>:<X size={24}/>}</span>
+    </button>
+  </div>;
 }
