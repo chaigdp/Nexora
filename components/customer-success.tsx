@@ -1,9 +1,11 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {ArrowUpRight,CalendarDays,CheckCircle2,Clock3,HeartPulse,ListTodo,MessageCircle,Plus,Send,Sparkles,Target,X} from 'lucide-react';
+import {ClipboardCheck as ClipboardCheckIcon,ArrowUpRight,CalendarDays,CheckCircle2,Clock3,HeartPulse,ListTodo,MessageCircle,Plus,Send,Sparkles,Target,X} from 'lucide-react';
 import {buildCSDraft,client360,closed,csCategories,csCategory,csStatuses,csToday,inferCSCategory,summarizeCS,type CSData,type CSOperation} from '../lib/customer-success';
 import s from '../app/vectta.module.css';
 import ChaiAssistant from './chai-assistant';
+import {savedJourney} from '../lib/journey-store';
+import {missingHandoff,health,todayISO} from '../lib/implantation-strategy';
 
 type Props={data:CSData;demo:boolean;token:string;owner:string;onSave:(plan:CSOperation)=>Promise<void>;onOpen:(id:string)=>void};
 type Message={role:'user'|'assistant';content:string;mode?:'ai'|'rules';scope:string};
@@ -104,7 +106,7 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
           </div>
           {current.latest&&<div className={s.csVoice}><span>VOZ DO CLIENTE · {date(current.latest.created_at.slice(0,10))}</span><strong>{current.latest.comment||'Avaliação registrada sem comentário.'}</strong><small>CSAT {current.latest.csat??'—'} · NPS {current.latest.nps??'—'} · CES {current.latest.ces??'—'}</small></div>}
           <div className={s.csNext}><Target size={20}/><div><strong>Próxima ação sugerida por regras</strong><p>{current.nextAction}</p></div></div>
-          <div className={s.csFocusActions}><button className={s.btn+' '+s.primary} onClick={()=>createPlan(current.project.id)}>Transformar em acompanhamento</button><button className={s.btn+' '+s.ghost} onClick={()=>setAssistantCommand({id:Date.now(),projectId:current.project.id,prompt:'Analise este cliente em 360 graus. Priorize os riscos, o relacionamento, as pendências e o próximo passo mais importante.'})}>Pedir análise 360° à chAI</button></div>
+          {(()=>{const journey=savedJourney(current.project);return <div className={s.csNext}><ClipboardCheckIcon/><div><strong>Passagem, adoção e saída da implantação</strong><p>{journey?`${7-missingHandoff(journey).length}/7 itens obrigatórios conferidos · ${journey.tasks.filter(t=>!t.done).length} ações abertas · saúde da adoção: ${health(journey,todayISO()).score??'sem dados'}`:'Jornada estratégica ainda não registrada. Complete a passagem e defina como acompanhar a adoção.'}</p><button className={s.link} onClick={()=>onOpen(current.project.id)}>Abrir jornada deste cliente</button></div></div>})()}<div className={s.csFocusActions}><button className={s.btn+' '+s.primary} onClick={()=>createPlan(current.project.id)}>Transformar em acompanhamento</button><button className={s.btn+' '+s.ghost} onClick={()=>setAssistantCommand({id:Date.now(),projectId:current.project.id,prompt:'Analise este cliente em 360 graus. Priorize os riscos, o relacionamento, as pendências e o próximo passo mais importante.'})}>Pedir análise 360° à chAI</button></div>
         </section>}
         {draft&&<section ref={editor} className={s.dashboardCard+' '+s.csEditor} aria-label="Editor de acompanhamento">
           <div className={s.dashboardTitle}><h2>{draft.id?'Editar acompanhamento':'Novo acompanhamento'}</h2><button className={s.btn+' '+s.ghost} disabled={saving} onClick={()=>setDraft(null)} aria-label="Fechar editor"><X size={18}/></button></div>
@@ -128,7 +130,7 @@ export default function CustomerSuccess({data,demo,token,owner,onSave,onOpen}:Pr
           </article>)}</div>{!scopedPlans.length&&<div className={s.empty}>Crie um acompanhamento para organizar ações, prazos e retornos.</div>}
         </section>
       </div>
-      <ChaiAssistant module="cs" demo={demo} token={token} projects={data.projects.map(p=>({id:p.id,client:p.client}))} projectId={selected} onProjectChange={chooseClient} command={assistantCommand} onUseAnswer={(answer,intent)=>createPlan(selected,answer,intent)}/>
+      <ChaiAssistant module="cs" demo={demo} token={token} projects={data.projects.map(p=>({id:p.id,client:p.client,journey:savedJourney(p)}))} projectId={selected} onProjectChange={chooseClient} command={assistantCommand} onUseAnswer={(answer,intent)=>createPlan(selected,answer,intent)}/>
     </div>
   </>;
 }

@@ -11,7 +11,7 @@ export const chaiModules = {
     eyebrow: 'chAI · Implantação',
     intro: 'Analisa etapas, prazos, bloqueios e dependências para orientar a próxima decisão.',
     placeholder: 'Ex.: O que está travando esta implantação?',
-    suggestions: ['Quais implantações estão mais atrasadas?','O que está bloqueando a evolução?','Qual próximo passo é mais importante?','Monte um plano de recuperação de prazo']
+    suggestions: ['O que falta na passagem de bastão?','Como melhorar a adoção deste cliente?','Monte um plano de reversão em 7 dias','O que falta para a saída da implantação?']
   },
   cs: {
     label: 'Parceira de Customer Success',

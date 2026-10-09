@@ -3,8 +3,9 @@ import {useEffect,useRef,useState} from 'react';
 import {X,MessageCircle,Send,Sparkles} from 'lucide-react';
 import {chaiModules,type ChaiModule} from '../lib/chai-modules';
 import s from '../app/vectta.module.css';
+import type {Customer} from '../lib/implantation-strategy';
 
-type ProjectOption={id:string;client:string};
+type ProjectOption={id:string;client:string;journey?:Customer|null};
 type Message={role:'user'|'assistant';content:string;scope:string};
 type Command={id:number;prompt:string;projectId?:string};
 type Props={
@@ -74,11 +75,11 @@ export default function ChaiAssistant({module,demo,token,projects,projectId='',o
         method:'POST',
         headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
         signal:controller.signal,
-        body:JSON.stringify({demo,module,project_id:targetProject,messages:history.map(({role,content})=>({role,content}))})
+        body:JSON.stringify({demo,module,project_id:targetProject,demo_journey:demo?projects.find(p=>p.id===targetProject)?.journey:undefined,messages:history.map(({role,content})=>({role,content}))})
       });
       const result=await response.json() as {answer?:string;message?:string;mode?:string};
       if(!response.ok||!result.answer)throw new Error(result.message||'A chAI não conseguiu responder agora.');
-      setMessages(m=>[...m,{role:'assistant',content:result.answer!,scope:targetScope}]);
+      setMessages(m=>[...m,{role:'assistant',content:(result.mode==='local_analysis'?'Análise por regras dos registros disponíveis.\n\n':'')+result.answer!,scope:targetScope}]);
     }catch(e){
       const message=e instanceof Error&&e.name!=='AbortError'?e.message:'A chAI não respondeu a tempo. Tente novamente.';
       setError(message);
