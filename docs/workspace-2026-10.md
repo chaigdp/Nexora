@@ -63,7 +63,7 @@ Os novos registros comportam essas evidências, mas não calculam automaticament
 - Recebe contexto de passagem, incidentes, reuniões, conhecimento e evolução.
 - Diferencia fatos, hipóteses, lacunas e recomendações; comunicações são rascunhos.
 - Preserva datas e identificadores no contexto e omite padrões comuns de contato. Isso não é uma garantia completa de anonimização.
-- Usa identificadores atuais do AI Gateway, com alternativa de modelo e análise por regras identificada quando a IA não responde.
+- Usa apenas um modelo com preço zero confirmado no catálogo do AI Gateway; se indisponível, retorna análise por regras identificada. Não usa alternativa paga.
 - Não envia mensagens, cria compromissos, resolve incidentes ou salva decisões automaticamente.
 
 Limites: contexto de até 20 registros priorizados entre os 100 mais recentes, mais consulta específica do registro solicitado, com 700 caracteres por campo. A tela carrega até 1.000 registros recentes e informa a cobertura. A base pessoal não é um mecanismo de busca semântica sobre todos os documentos. O limite de requisições da IA é por instância do servidor, não uma cota global distribuída.
@@ -93,3 +93,9 @@ Com acesso autorizado ao painel, foi confirmado que o projeto não possui chave 
 O painel do AI Gateway mostrou crédito de US$ 0,00 e exigiu verificação de cartão para liberar os créditos gratuitos. O formulário foi aberto para a titular. Nenhum dado de cartão foi preenchido, nenhum crédito foi comprado e nenhuma nova chave foi criada.
 
 Referência técnica: https://vercel.com/docs/oidc#in-vercel-functions
+
+### Preferência de custo zero e navegação, 18/10/2026
+
+A pedido da titular, a chAI usa exclusivamente `nvidia/nemotron-3.5-lightning-free`, consultando o catálogo público antes de cada geração e exigindo preço zero em todos os campos de preço publicados. Modelo ausente, preço não verificável, mudança de preço ou erro levam à análise por regras, sem alternativa paga. A configuração antiga de modelo não substitui essa restrição. Isso controla a seleção de modelo, não a cobrança da conta inteira, nem constitui garantia contratual de preço do provedor. O modelo gratuito informa que pode reter entradas e respostas para melhorias; não presumir autorização para dados corporativos. Não foram comprados créditos ou ativadas assinaturas/recargas. A verificação de conta pode continuar impedindo a geração, sem impedir o uso dos registros e da análise por regras.
+
+As abas Testes e Manual ERP foram retiradas da navegação. Registros existentes e etapas de validação das implantações foram preservados.

@@ -2,7 +2,7 @@
 import {useEffect,useMemo,useState,useRef} from 'react';
 import {
   LayoutDashboard,Layers3,ListTodo,ChartNoAxesCombined,ShieldCheck,BookOpen,AlertTriangle,
-  CalendarDays,ClipboardCheck,TestTube2,Headphones,Workflow,Settings2,Plug,WalletCards,
+  CalendarDays,ClipboardCheck,Headphones,Workflow,Settings2,Plug,WalletCards,
   Plus,Search,ChevronRight,Check,Clock3,Menu,LogOut,X,KeyRound
 } from 'lucide-react';
 import s from './vectta.module.css';
@@ -60,8 +60,8 @@ const trailStages=[
 const nav=[
 ['Início',LayoutDashboard],['Visão geral',ChartNoAxesCombined],['Implantações',Layers3],['Jornada e passagem',ClipboardCheck],['Pendências',ListTodo],
 ['Acompanhamento de CS',Headphones],['Resultados',WalletCards],['Relatórios e dados',ChartNoAxesCombined],['Feedbacks',Headphones],['Campanhas',Plug],['Administração',Settings2],['Riscos e estratégias',AlertTriangle],
-['Cronograma',CalendarDays],['Requisitos',ClipboardCheck],['Testes',TestTube2],['Chamados',Headphones],
-['Processos',Workflow],['Manual ERP',Settings2],['Entrada em operação',Check],['Integrações',Plug],['Rentabilidade',WalletCards]
+['Cronograma',CalendarDays],['Requisitos',ClipboardCheck],['Chamados',Headphones],
+['Processos',Workflow],['Entrada em operação',Check],['Integrações',Plug],['Rentabilidade',WalletCards]
 ] as const;
 
 const fmt=(v:string|null)=>v?new Date(v+'T12:00:00').toLocaleDateString('pt-BR'):'—';

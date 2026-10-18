@@ -1,5 +1,5 @@
 import type {Project,Task} from './model';
-export const modules=['Riscos e estratégias','Cronograma','Requisitos','Testes','Chamados','Processos','Manual ERP','Entrada em operação','Integrações','Rentabilidade'];
+export const modules=['Riscos e estratégias','Cronograma','Requisitos','Chamados','Processos','Entrada em operação','Integrações','Rentabilidade'];
 export const recordKinds=['Requisito','Teste','Chamado','Processo','Parametrização','Prontidão','Risco','Melhoria'];
 export type Operation={id:string;project:string;kind:string;title:string;owner:string;due:string;status:string;priority:string;detail:string;evidence:string;strategy:string;dependency:string;progress:number;updated:string};
 export type Business={contact?:string;email?:string;phone?:string;taxId?:string;crm?:string;externalId?:string;revenue?:number;plannedHours?:number;actualHours?:number;hourCost?:number;success?:string;riskReason?:string;riskPlan?:string};
@@ -21,3 +21,4 @@ export function readiness(p:Project,tasks:Task[],records:Operation[]){const own=
  {name:'Testes aprovados com evidência',ok:own.some(r=>r.kind==='Teste')&&own.filter(r=>r.kind==='Teste').every(r=>r.status==='Aprovado'&&!!r.evidence),reason:'Registre resultado e evidência de cada teste'},
  {name:'Aceite do cliente e plano de retorno',ok:own.some(r=>r.kind==='Prontidão'&&r.status==='Aprovado'&&!!r.evidence&&!!r.strategy),reason:'Exige aceite, evidência e plano de retorno se houver falha'},
  {name:'Sem chamados críticos abertos',ok:!own.some(r=>r.kind==='Chamado'&&r.priority==='Crítica'&&!['Concluído','Aprovado'].includes(r.status)),reason:'Resolva os chamados que impedem a operação'}];}
+

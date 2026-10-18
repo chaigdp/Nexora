@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {registerHooks} from 'node:module';
 registerHooks({resolve(specifier,context,next){return next(specifier.startsWith('.')&&!/\.[a-z]+$/.test(specifier)?specifier+'.ts':specifier,context);}});
 const {assessCS,portfolioCS,inferCSCategory,buildCSDraft,csCategory,isCSPlan,summarizeCS,client360}=await import('../lib/customer-success.ts');
-const {handleChai,parseChatRequest}=await import('../lib/chai-assistant.ts');
+const {handleChai,parseChatRequest,FREE_CHAI_MODEL}=await import('../lib/chai-assistant.ts');
 const {chaiModules}=await import('../lib/chai-modules.ts');
 const project={id:'11111111-1111-4111-8111-111111111111',client:'Cliente teste',owner:'Analista',phase:'Acompanhamento',due_date:null,manual_risk_level:'Baixo'};
 const base={projects:[project],tasks:[],feedbacks:[],operations:[]};
@@ -71,18 +71,19 @@ function mockRequest({allow=true,projects=[project],tasks=[],operations=[],provi
   if(url.includes('/rest/v1/tasks?'))return Response.json(tasks);
   if(url.includes('/rest/v1/operations?'))return Response.json(operations);
   if(url.includes('/rest/v1/'))return Response.json([]);
-  if(url==='https://ai-gateway.vercel.sh/v1/chat/completions'){const index=calls.filter(x=>x.url.includes('ai-gateway')).length-1;const status=providerStatuses[index]??providerStatus;return Response.json({choices:[{message:{content:'Sugiro escuta e prazo combinado.'}}]},{status});}
+  if(url==='https://ai-gateway.vercel.sh/v1/models')return Response.json({data:[{id:FREE_CHAI_MODEL,type:'language',pricing:{input:'0',output:'0'}}]});
+  if(url==='https://ai-gateway.vercel.sh/v1/chat/completions'){const index=calls.filter(x=>x.url.includes('/chat/completions')).length-1;const status=providerStatuses[index]??providerStatus;return Response.json({choices:[{message:{content:'Sugiro escuta e prazo combinado.'}}]},{status});}
   throw new Error('unexpected URL');
  };return {request,calls};
 }
 test('retired demo cannot read data or invoke AI',async()=>{const m=mockRequest();const r=await handleChai(req({demo:true,messages:[{role:'user',content:'oi'}]},{Authorization:'Bearer demo'}),{...m,key:'fake'});assert.equal(r.status,410);assert.equal(m.calls.length,0);});
 test('chat requires verified authentication before reading data or invoking AI',async()=>{const m=mockRequest({allow:false});const r=await handleChai(req(),{...m,key:'fake-gateway'});assert.equal(r.status,401);assert.equal(m.calls.length,1);const r2=await handleChai(req(question,{Authorization:''}),{...m,key:'fake'});assert.equal(r2.status,401);assert.equal(m.calls.length,1);});
-test('chat cannot use a client absent from authenticated RLS results',async()=>{const m=mockRequest({projects:[]});const r=await handleChai(req(),{...m,key:'fake'});assert.equal(r.status,404);assert.ok(!m.calls.some(x=>x.url.includes('ai-gateway')));});
-test('model receives sanitized server context, not tokens or client supplied health',async()=>{const m=mockRequest();const r=await handleChai(req({...question,health:'fake',user_id:'other'}),{...m,key:'gateway-secret'});assert.equal(r.status,200);const call=m.calls.find(c=>c.url.includes('ai-gateway'));assert.ok(call);assert.equal(call.options.headers.Authorization,'Bearer gateway-secret');const payload=JSON.parse(call.options.body);assert.equal(payload.max_tokens,1200);assert.ok(!call.options.body.includes(token));assert.ok(!call.options.body.includes('maria@example.com'));assert.ok(!call.options.body.includes('99999-9999'));assert.equal((await r.json()).mode,'ai');});
-test('360 analysis context includes open work, blockers and next contact',async()=>{const task={id:'t-ai',project_id:project.id,title:'Resolver integração',done:false,critical:true,blocked:true,due_date:'2026-10-01'};const plan={...op,id:'o-ai',dependency:'CS:Atrito',due_date:'2099-10-09',updated_at:'2026-10-07T10:00:00Z'};const m=mockRequest({tasks:[task],operations:[plan]});const r=await handleChai(req({project_id:project.id,messages:[{role:'user',content:'Analise este cliente em 360 graus'}]}),{...m,key:'fake',now:()=>Date.parse('2026-10-07T12:00:00Z')});assert.equal(r.status,200);const call=m.calls.find(c=>c.url.includes('ai-gateway'));const payload=JSON.parse(call.options.body);const context=payload.messages[1].content;assert.match(context,/"openTasks":1/);assert.match(context,/"blockedTasks":1/);assert.match(context,/"nextContact":\{"title":"Reversão"/);});
-test('module choice changes the strategic context sent to chAI',async()=>{const testOp={...op,id:'test-op',kind:'Teste',status:'Reprovado',evidence:''};const m=mockRequest({operations:[testOp]});const r=await handleChai(req({module:'testes',project_id:project.id,messages:[{role:'user',content:'O que falta validar?'}]}),{...m,key:'fake',now:()=>Date.parse('2026-10-07T12:00:00Z')});assert.equal(r.status,200);const call=m.calls.find(c=>c.url.includes('ai-gateway'));const payload=JSON.parse(call.options.body);assert.match(payload.messages[0].content,/módulo atual é Testes/);assert.match(payload.messages[1].content,/"moduleName":"Testes"/);assert.match(payload.messages[1].content,/"failed":1/);assert.match(payload.messages[1].content,/"withoutEvidence":1/);});
-test('missing connection and provider failure both fall back to local analysis',async()=>{const m=mockRequest();const localResponse=await handleChai(req(),{...m,key:''});assert.equal(localResponse.status,200);const localPayload=await localResponse.json();assert.equal(localPayload.mode,'local_analysis');assert.ok(!m.calls.some(x=>x.url.includes('ai-gateway')));const b=mockRequest({providerStatus:402});const r=await handleChai(req(),{...b,key:'fake'});assert.equal(r.status,200);const payload=await r.json();assert.equal(payload.mode,'local_analysis');assert.match(payload.answer,/Para Cliente/i);assert.equal(payload.fallback_reason,'credits');assert.equal(b.calls.filter(x=>x.url.includes('ai-gateway')).length,1);});
-test('chAI automatically tries the fallback model when the first provider fails',async()=>{const m=mockRequest({providerStatuses:[503,200]});const r=await handleChai(req(),{...m,key:'fake'});assert.equal(r.status,200);const payload=await r.json();assert.equal(payload.mode,'ai');assert.equal(payload.model,'inclusionai/ling-3.0-flash');const calls=m.calls.filter(x=>x.url.includes('ai-gateway'));assert.equal(calls.length,2);const second=JSON.parse(calls[1].options.body);assert.equal(second.model,'inclusionai/ling-3.0-flash');});
+test('chat cannot use a client absent from authenticated RLS results',async()=>{const m=mockRequest({projects:[]});const r=await handleChai(req(),{...m,key:'fake'});assert.equal(r.status,404);assert.ok(!m.calls.some(x=>x.url.includes('/chat/completions')));});
+test('model receives sanitized server context, not tokens or client supplied health',async()=>{const m=mockRequest();const r=await handleChai(req({...question,health:'fake',user_id:'other'}),{...m,key:'gateway-secret'});assert.equal(r.status,200);const call=m.calls.find(c=>c.url.includes('/chat/completions'));assert.ok(call);assert.equal(call.options.headers.Authorization,'Bearer gateway-secret');const payload=JSON.parse(call.options.body);assert.equal(payload.max_tokens,1200);assert.ok(!call.options.body.includes(token));assert.ok(!call.options.body.includes('maria@example.com'));assert.ok(!call.options.body.includes('99999-9999'));assert.equal((await r.json()).mode,'ai');});
+test('360 analysis context includes open work, blockers and next contact',async()=>{const task={id:'t-ai',project_id:project.id,title:'Resolver integração',done:false,critical:true,blocked:true,due_date:'2026-10-01'};const plan={...op,id:'o-ai',dependency:'CS:Atrito',due_date:'2099-10-09',updated_at:'2026-10-07T10:00:00Z'};const m=mockRequest({tasks:[task],operations:[plan]});const r=await handleChai(req({project_id:project.id,messages:[{role:'user',content:'Analise este cliente em 360 graus'}]}),{...m,key:'fake',now:()=>Date.parse('2026-10-07T12:00:00Z')});assert.equal(r.status,200);const call=m.calls.find(c=>c.url.includes('/chat/completions'));const payload=JSON.parse(call.options.body);const context=payload.messages[1].content;assert.match(context,/"openTasks":1/);assert.match(context,/"blockedTasks":1/);assert.match(context,/"nextContact":\{"title":"Reversão"/);});
+test('module choice changes the strategic context sent to chAI',async()=>{const testOp={...op,id:'test-op',kind:'Teste',status:'Reprovado',evidence:''};const m=mockRequest({operations:[testOp]});const r=await handleChai(req({module:'testes',project_id:project.id,messages:[{role:'user',content:'O que falta validar?'}]}),{...m,key:'fake',now:()=>Date.parse('2026-10-07T12:00:00Z')});assert.equal(r.status,200);const call=m.calls.find(c=>c.url.includes('/chat/completions'));const payload=JSON.parse(call.options.body);assert.match(payload.messages[0].content,/módulo atual é Testes/);assert.match(payload.messages[1].content,/"moduleName":"Testes"/);assert.match(payload.messages[1].content,/"failed":1/);assert.match(payload.messages[1].content,/"withoutEvidence":1/);});
+test('missing connection and provider failure both fall back to local analysis',async()=>{const m=mockRequest();const localResponse=await handleChai(req(),{...m,key:''});assert.equal(localResponse.status,200);const localPayload=await localResponse.json();assert.equal(localPayload.mode,'local_analysis');assert.ok(!m.calls.some(x=>x.url.includes('/chat/completions')));const b=mockRequest({providerStatus:402});const r=await handleChai(req(),{...b,key:'fake'});assert.equal(r.status,200);const payload=await r.json();assert.equal(payload.mode,'local_analysis');assert.match(payload.answer,/Para Cliente/i);assert.equal(payload.fallback_reason,'credits');assert.equal(b.calls.filter(x=>x.url.includes('/chat/completions')).length,1);});
+test('free mode never falls back to a paid model',async()=>{const m=mockRequest({providerStatuses:[503,200]});const r=await handleChai(req(),{...m,key:'fake',model:'inclusionai/ling-3.1-flash'});const body=await r.json();assert.equal(body.mode,'local_analysis');const calls=m.calls.filter(x=>x.url.includes('/chat/completions'));assert.equal(calls.length,1);assert.equal(JSON.parse(calls[0].options.body).model,FREE_CHAI_MODEL);assert.match(body.notice,/Modo gratuito/);});
 
 
 test('selected work record is fetched with authenticated scope even outside the recent list',async()=>{
@@ -91,7 +92,7 @@ test('selected work record is fetched with authenticated scope even outside the 
  const request=async(url,options)=>url.includes('/work_items?')?Response.json(url.includes('&id=eq.')?[{id:workId,kind:'learning',title:'Política validada',status:'Concluído',priority:'P2',due_date:'2026-10-26',data:{facts:'Procedimento confirmado',evidence:'Fonte interna'}}]:[]):m.request(url,options);
  const response=await handleChai(req({module:'trabalho',messages:[{role:'user',content:'Analise o registro '+workId}]}),{request,key:'fake'});
  assert.equal(response.status,200);
- const provider=m.calls.find(c=>c.url.includes('ai-gateway'));
+ const provider=m.calls.find(c=>c.url.includes('/chat/completions'));
  const payload=JSON.parse(provider.options.body);
  assert.match(payload.messages[1].content,/Política validada/);
  assert.match(payload.messages[1].content,/Procedimento confirmado/);
@@ -104,7 +105,7 @@ test('provider authentication failure is explicit and does not retry another mod
  const m=mockRequest({providerStatus:401});
  const response=await handleChai(req({module:'trabalho',messages:[{role:'user',content:'Planeje meu dia'}]}),{...m,key:'fake'});
  const body=await response.json();assert.equal(body.fallback_reason,'authentication');assert.match(body.notice,/autenticação/);
- assert.equal(m.calls.filter(c=>c.url.includes('ai-gateway')).length,1);
+ assert.equal(m.calls.filter(c=>c.url.includes('/chat/completions')).length,1);
 });
 
 test('Vercel runtime OIDC authenticates Gateway without a persistent key',async()=>{
@@ -114,16 +115,26 @@ test('Vercel runtime OIDC authenticates Gateway without a persistent key',async(
   const m=mockRequest();const runtimeToken='synthetic-rotating-token';
   const response=await handleChai(req(question,{'x-vercel-oidc-token':runtimeToken}),m);
   assert.equal((await response.json()).mode,'ai');
-  const call=m.calls.find(c=>c.url.includes('ai-gateway'));
+  const call=m.calls.find(c=>c.url.includes('/chat/completions'));
   assert.equal(call.options.headers.Authorization,'Bearer '+runtimeToken);
   assert.ok(!call.options.body.includes(runtimeToken));
   delete process.env.VERCEL;
   const local=mockRequest();const denied=await handleChai(req(question,{'x-vercel-oidc-token':runtimeToken}),local);
   assert.equal((await denied.json()).fallback_reason,'not_configured');
-  assert.ok(!local.calls.some(c=>c.url.includes('ai-gateway')));
+  assert.ok(!local.calls.some(c=>c.url.includes('/chat/completions')));
  }finally{
   for(const [key,value] of [['VERCEL',previous.vercel],['AI_GATEWAY_API_KEY',previous.key],['VERCEL_OIDC_TOKEN',previous.oidc]]){
    if(value===undefined)delete process.env[key];else process.env[key]=value;
   }
  }
+});
+
+
+test('free mode fails closed when pricing changes or cannot be verified',async()=>{
+ for(const entry of [null,{input:'0.0001',output:'0'},{input:'0',output:'0',request:'1'},{input:null,output:'0'}]){
+  const m=mockRequest();const request=(url,o)=>url.endsWith('/v1/models')?Promise.resolve(Response.json({data:entry?[{id:FREE_CHAI_MODEL,type:'language',pricing:entry}]:[]})):m.request(url,o);
+  const response=await handleChai(req(),{request,key:'fake'});const body=await response.json();assert.equal(body.mode,'local_analysis');assert.equal(body.fallback_reason,'free_unavailable');assert.ok(!m.calls.some(c=>c.url.includes('/chat/completions')));
+ }
+ const m=mockRequest();const request=(url,o)=>url.endsWith('/v1/models')?Promise.reject(new Error('offline')):m.request(url,o);
+ assert.equal((await (await handleChai(req(),{request,key:'fake'})).json()).fallback_reason,'free_unavailable');assert.ok(!m.calls.some(c=>c.url.includes('/chat/completions')));
 });

@@ -9,7 +9,7 @@ registerHooks({
 const m = await import("../lib/implantation-strategy.ts");
 const store = await import("../lib/journey-store.ts");
 const { handleJourneySave } = await import("../lib/journey-api.ts");
-const { handleChai, parseChatRequest } =
+const { handleChai, parseChatRequest, FREE_CHAI_MODEL } =
   await import("../lib/chai-assistant.ts");
 const id = "11111111-1111-4111-8111-111111111111";
 const token = "Bearer " + "a".repeat(50);
@@ -211,6 +211,7 @@ test("chAI recebe a jornada salva e as estratégias como contexto de implantaç�
       key: "test-key",
       now: () => Date.now() + 120000,
       request: async (url, o) => {
+        if (url.endsWith("/v1/models")) return json({data:[{id:FREE_CHAI_MODEL,type:"language",pricing:{input:"0",output:"0"}}]});
         if (url.includes("/auth/")) return json({ id: "journey-test" });
         if (url.includes("/chat/completions")) {
           context = JSON.parse(o.body);
@@ -230,3 +231,4 @@ test("chAI recebe a jornada salva e as estratégias como contexto de implantaç�
   assert.match(context.messages[1].content, /Módulos contratados/);
   assert.ok(!JSON.stringify(context).includes(token));
 });
+
