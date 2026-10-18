@@ -106,3 +106,24 @@ test('provider authentication failure is explicit and does not retry another mod
  const body=await response.json();assert.equal(body.fallback_reason,'authentication');assert.match(body.notice,/autenticação/);
  assert.equal(m.calls.filter(c=>c.url.includes('ai-gateway')).length,1);
 });
+
+test('Vercel runtime OIDC authenticates Gateway without a persistent key',async()=>{
+ const previous={vercel:process.env.VERCEL,key:process.env.AI_GATEWAY_API_KEY,oidc:process.env.VERCEL_OIDC_TOKEN};
+ try{
+  process.env.VERCEL='1';delete process.env.AI_GATEWAY_API_KEY;delete process.env.VERCEL_OIDC_TOKEN;
+  const m=mockRequest();const runtimeToken='synthetic-rotating-token';
+  const response=await handleChai(req(question,{'x-vercel-oidc-token':runtimeToken}),m);
+  assert.equal((await response.json()).mode,'ai');
+  const call=m.calls.find(c=>c.url.includes('ai-gateway'));
+  assert.equal(call.options.headers.Authorization,'Bearer '+runtimeToken);
+  assert.ok(!call.options.body.includes(runtimeToken));
+  delete process.env.VERCEL;
+  const local=mockRequest();const denied=await handleChai(req(question,{'x-vercel-oidc-token':runtimeToken}),local);
+  assert.equal((await denied.json()).fallback_reason,'not_configured');
+  assert.ok(!local.calls.some(c=>c.url.includes('ai-gateway')));
+ }finally{
+  for(const [key,value] of [['VERCEL',previous.vercel],['AI_GATEWAY_API_KEY',previous.key],['VERCEL_OIDC_TOKEN',previous.oidc]]){
+   if(value===undefined)delete process.env[key];else process.env[key]=value;
+  }
+ }
+});

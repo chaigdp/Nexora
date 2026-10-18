@@ -85,3 +85,11 @@ Próximos incrementos úteis, após conhecer a operação: metas alinhadas à li
 A implantação `e44bbd0` passou pela validação completa do repositório. No site publicado, o acesso anônimo aos registros retornou 401, a demonstração retornou 410 e a verificação de disponibilidade retornou 200. A sessão expirada foi renovada pelo fluxo normal. O registro pessoal “Alinhar critérios de evolução para pleno” foi salvo pela interface e permaneceu após recarregar.
 
 A consulta real à chAI retornou análise por regras, não uma resposta generativa. As consultas de logs e configuração na Vercel foram recusadas com 403 para a equipe `chaianegdp-6988`; a conexão atual não permite concluir esse diagnóstico administrativo. A interface passou a informar o motivo seguro de indisponibilidade, distinguindo conexão ausente, autenticação, verificação de conta, créditos, limite e timeout. Não foram criadas chaves nem alterados pagamentos ou limites.
+
+### Conexão OIDC em 18/10/2026
+
+Com acesso autorizado ao painel, foi confirmado que o projeto não possui chave persistente e já usa o emissor OIDC da equipe. A função da chAI foi corrigida para ler o token rotativo enviado pela própria Vercel no cabeçalho da requisição em produção, após validar a sessão do usuário. O cabeçalho é ignorado fora da Vercel, e o token não é exposto na resposta nem incluído no contexto do modelo. Teste dedicado cobre ambos os ambientes.
+
+O painel do AI Gateway mostrou crédito de US$ 0,00 e exigiu verificação de cartão para liberar os créditos gratuitos. O formulário foi aberto para a titular. Nenhum dado de cartão foi preenchido, nenhum crédito foi comprado e nenhuma nova chave foi criada.
+
+Referência técnica: https://vercel.com/docs/oidc#in-vercel-functions

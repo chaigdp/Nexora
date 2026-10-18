@@ -171,7 +171,10 @@ export async function handleChai(req:Request,options:Options={}) {
     if(!auth.ok||!user.id)return reply({code:'login_required',message:'Sua sessão expirou. Entre novamente para consultar sua carteira.'},401);
     userId=user.id;
 
-    const key=options.key??(process.env.AI_GATEWAY_API_KEY||process.env.VERCEL_OIDC_TOKEN||'');
+    // Vercel Functions receive a rotating OIDC token per request, not an env var.
+    // Only use that platform-injected header on Vercel; never log or return it.
+    const runtimeOidc=process.env.VERCEL==='1'?req.headers.get('x-vercel-oidc-token'):null;
+    const key=options.key??(process.env.AI_GATEWAY_API_KEY||runtimeOidc||process.env.VERCEL_OIDC_TOKEN||'');
 
     const now=(options.now||Date.now)();
     for(const [id,entry] of minuteLimits)if(now-entry.start>=60000)minuteLimits.delete(id);
