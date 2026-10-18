@@ -79,3 +79,9 @@ Foram adicionadas renovação de sessão, proteção contra saída com alteraç�
 O Vectta é um apoio pessoal. Não está integrado ao CRM da Onfly e não possui autorização institucional presumida. Referências aos sistemas oficiais são preferíveis à duplicação de dados sensíveis. A análise de banco ainda sinalizou proteção contra senhas vazadas desabilitada na configuração de autenticação; essa configuração não foi alterada nem foi contratado plano adicional.
 
 Próximos incrementos úteis, após conhecer a operação: metas alinhadas à liderança, catálogo real de causas de incidentes, indicadores com definições aprovadas, exportação estruturada dos registros pessoais, pesquisa ampliada da base e integrações autorizadas. Não foram simulados conectores ou resultados para aparentar que essas capacidades já existem.
+
+## Conferência após publicação
+
+A implantação `e44bbd0` passou pela validação completa do repositório. No site publicado, o acesso anônimo aos registros retornou 401, a demonstração retornou 410 e a verificação de disponibilidade retornou 200. A sessão expirada foi renovada pelo fluxo normal. O registro pessoal “Alinhar critérios de evolução para pleno” foi salvo pela interface e permaneceu após recarregar.
+
+A consulta real à chAI retornou análise por regras, não uma resposta generativa. As consultas de logs e configuração na Vercel foram recusadas com 403 para a equipe `chaianegdp-6988`; a conexão atual não permite concluir esse diagnóstico administrativo. A interface passou a informar o motivo seguro de indisponibilidade, distinguindo conexão ausente, autenticação, verificação de conta, créditos, limite e timeout. Não foram criadas chaves nem alterados pagamentos ou limites.

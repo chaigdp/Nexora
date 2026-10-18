@@ -77,9 +77,9 @@ export default function ChaiAssistant({module,demo,token,projects,projectId='',o
         signal:controller.signal,
         body:JSON.stringify({demo,module,project_id:targetProject,demo_journey:demo?projects.find(p=>p.id===targetProject)?.journey:undefined,messages:history.map(({role,content})=>({role,content}))})
       });
-      const result=await response.json() as {answer?:string;message?:string;mode?:string};
+      const result=await response.json() as {answer?:string;message?:string;mode?:string;notice?:string};
       if(!response.ok||!result.answer)throw new Error(result.message||'A chAI não conseguiu responder agora.');
-      setMessages(m=>[...m,{role:'assistant',content:(result.mode==='local_analysis'?'Análise por regras dos registros disponíveis.\n\n':'')+result.answer!,scope:targetScope}]);
+      setMessages(m=>[...m,{role:'assistant',content:(result.mode==='local_analysis'?(result.notice?result.notice+'\n\n':'')+'Análise por regras dos registros disponíveis.\n\n':'')+result.answer!,scope:targetScope}]);
     }catch(e){
       const message=e instanceof Error&&e.name!=='AbortError'?e.message:'A chAI não respondeu a tempo. Tente novamente.';
       setError(message);
