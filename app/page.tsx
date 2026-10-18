@@ -6,9 +6,10 @@ import {
   Plus,Search,ChevronRight,Check,Clock3,Menu,LogOut,X,KeyRound
 } from 'lucide-react';
 import s from './vectta.module.css';
+import WorkWorkspace from '../components/workspace';
+import {renewSession} from '../lib/session-refresh';
 import PendingWorkspace from '../components/pending-workspace';
 import {validatePending,type PendingTask} from '../lib/pending-strategy';
-import WhatsAppTestLab from '../components/whatsapp-test-lab';
 import CustomerSuccess from '../components/customer-success';
 import dynamic from 'next/dynamic';
 const JourneyWorkspace=dynamic(()=>import('../components/implantation-journey').then(m=>m.JourneyWorkspace),{loading:()=> <p>Carregando a jornada…</p>});
@@ -63,26 +64,6 @@ const nav=[
 ['Processos',Workflow],['Manual ERP',Settings2],['Entrada em operação',Check],['Integrações',Plug],['Rentabilidade',WalletCards]
 ] as const;
 
-const demos:Project[]=[
-{id:'d1',client:'Farmácias Aurora',segment:'Varejo farmacêutico',system:'ERP Integrado',owner:'Chai',phase:'Testes',start_date:'2026-09-10',due_date:'2026-10-18',scope:'Financeiro, estoque, compras, cadastro e treinamento.',manual_risk_level:'Médio',metadata:{revenue:12500,actualHours:42,hourCost:65}},
-{id:'d2',client:'Mercado Horizonte',segment:'Supermercado',system:'ERP Comercial',owner:'Chai',phase:'Configuração',start_date:'2026-09-18',due_date:'2026-10-29',scope:'Cadastro, vendas, fiscal, relatórios e gestão de lojas.',manual_risk_level:'Baixo',metadata:{revenue:18000,actualHours:29,hourCost:70}},
-{id:'d3',client:'Academia Vértice',segment:'Fitness',system:'Gestão de unidades',owner:'Chai',phase:'Treinamento',start_date:'2026-09-01',due_date:'2026-10-10',scope:'Planos, recepção, financeiro e operação de 10 unidades.',manual_risk_level:'Alto',metadata:{revenue:9800,actualHours:39,hourCost:60}},
-{id:'d4',client:'Oficina Cedro',segment:'Serviços automotivos',system:'ERP Oficina',owner:'Chai',phase:'Acompanhamento',start_date:'2026-08-20',due_date:'2026-10-24',scope:'Ordens de serviço, estoque, financeiro e pós-venda.',manual_risk_level:'Baixo',metadata:{revenue:7200,actualHours:31,hourCost:55}},
-{id:'d5',client:'Conecta Telecom',segment:'Telecom',system:'CRM + Billing',owner:'Chai',phase:'Migração',start_date:'2026-09-15',due_date:'2026-10-14',scope:'Base de clientes, billing, suporte e integrações.',manual_risk_level:'Médio',metadata:{revenue:22400,actualHours:48,hourCost:82}}
-];
-const demoTasks:Task[]=[
-{id:'t1',project_id:'d1',title:'Validar integração fiscal',owner:'Chai',due_date:'2026-10-07',done:false,critical:true,kind:'Entrega',priority:'Alta',blocked:false,detail:{progress:60}},
-{id:'t2',project_id:'d1',title:'Executar testes de estoque',owner:'Cliente',due_date:'2026-10-08',done:false,critical:true,kind:'Entrega',priority:'Alta',blocked:false,detail:{progress:40}},
-{id:'t3',project_id:'d2',title:'Configurar regras de preço',owner:'Chai',due_date:'2026-10-09',done:false,critical:false,kind:'Entrega',priority:'Normal',blocked:false,detail:{progress:30}},
-{id:'t4',project_id:'d3',title:'Treinar líderes das unidades',owner:'Chai',due_date:'2026-10-06',done:false,critical:true,kind:'Entrega',priority:'Alta',blocked:true,detail:{progress:35}},
-{id:'t5',project_id:'d4',title:'Revisar indicadores pós-go-live',owner:'Chai',due_date:'2026-10-12',done:false,critical:false,kind:'Entrega',priority:'Normal',blocked:false,detail:{progress:70}},
-{id:'t6',project_id:'d5',title:'Conferir amostra da migração',owner:'Cliente',due_date:'2026-10-05',done:false,critical:true,kind:'Entrega',priority:'Alta',blocked:false,detail:{progress:55}}
-];
-const demoOps:Op[]=[
-{id:'o1',project_id:'d1',kind:'Requisito',title:'Integração fiscal homologada',owner:'Cliente',due_date:'2026-10-07',status:'Aprovado',priority:'Alta',detail:'Escopo fiscal definido.',evidence:'Ata de aceite',strategy:'',progress:100},
-{id:'o2',project_id:'d1',kind:'Teste',title:'Fluxo de entrada de estoque',owner:'Chai',due_date:'2026-10-08',status:'Em andamento',priority:'Alta',detail:'Teste ponta a ponta.',evidence:'',strategy:'',progress:60}
-];
-
 const fmt=(v:string|null)=>v?new Date(v+'T12:00:00').toLocaleDateString('pt-BR'):'—';
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const badge=(r:Risk)=>r==='Alto'?s.bad:r==='Médio'?s.warn:s.ok;
@@ -124,7 +105,8 @@ export default function Page(){
  const [selected,setSelected]=useState('');
  const [query,setQuery]=useState('');
  const [phase,setPhase]=useState('Todas');
- const [demo,setDemo]=useState(false);
+ const demo=false;
+
  const [mobile,setMobile]=useState(false);
  const [error,setError]=useState('');
  const [notice,setNotice]=useState('');
@@ -140,14 +122,34 @@ export default function Page(){
  const [showTrail,setShowTrail]=useState(false);
  const [trailFocus,setTrailFocus]=useState('');
  const [overviewRisk,setOverviewRisk]=useState<'Todos'|'Alto'|'Médio'|'Baixo'>('Todos');
- const [form,setForm]=useState({client:'',segment:'',system:'',owner:'Chai',phase:'Descoberta',due:'',scope:'',revenue:'0',cnpj:'',contact_name:'',contact_email:'',contact_phone:'',message_opt_in:false,preferred_channel:'WhatsApp'});
+ const [form,setForm]=useState({client:'',segment:'',system:'Onfly',owner:'Chai',phase:'Descoberta',due:'',scope:'',revenue:'0',cnpj:'',contact_name:'',contact_email:'',contact_phone:'',message_opt_in:false,preferred_channel:'WhatsApp'});
  const [feedbackForm,setFeedbackForm]=useState({project_id:'',contact_name:'',contact_role:'',channel:'Reunião',csat:'5',nps:'10',ces:'6',comment:''});
  const [campaignForm,setCampaignForm]=useState({name:'',channel:'WhatsApp',audience:'Todos',message:'',recipientMode:'base',manualName:'',manualPhone:'',manualConsent:false,segment:'Todos',phase:'Todas',risk:'Todos',listGroup:'Todos',listProfile:'Todos',template_name:'',template_language:'pt_BR'});
  const [importedContacts,setImportedContacts]=useState<ImportContact[]>([]);
  const [importConsent,setImportConsent]=useState(false);
  const [profileForm,setProfileForm]=useState({full_name:'',workspace_name:'Carteira pessoal',phone:'',avatar_url:''});
 
- useEffect(()=>{const raw=localStorage.getItem('vectta.session');if(raw){try{setSession(JSON.parse(raw))}catch{}}},[]);
+ // Serialize refreshes across tabs, and never restore a session removed by logout.
+ async function freshSession():Promise<Session|null>{
+  const run=async()=>{
+   const raw=localStorage.getItem('vectta.session');if(!raw)return null;
+   let stored:Session;try{stored=JSON.parse(raw);}catch{localStorage.removeItem('vectta.session');return null;}
+   if(!stored?.user?.id||!stored.access_token||stored.access_token==='demo'){localStorage.removeItem('vectta.session');return null;}
+   const next=await renewSession(stored,SUPA,KEY);
+   if(localStorage.getItem('vectta.session')!==raw)return null;
+   if(next!==stored)localStorage.setItem('vectta.session',JSON.stringify(next));
+   return next;
+  };
+  return navigator.locks?navigator.locks.request('vectta-session-renewal',run):run();
+ }
+ useEffect(()=>{let active=true;void freshSession().then(next=>{if(active)setSession(next);}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[]);
+ useEffect(()=>{
+  if(!session)return;let active=true;
+  const refresh=()=>{if(document.visibilityState==='hidden')return;void freshSession().then(next=>{if(active&&next&&next.access_token!==session.access_token){setSession(next);setError('');}}).catch(e=>{if(active)setError(e.message);});};
+  const id=setInterval(refresh,30000);window.addEventListener('focus',refresh);
+  return()=>{active=false;clearInterval(id);window.removeEventListener('focus',refresh);};
+ },[session?.access_token]);
+ useEffect(()=>{const sync=(e:StorageEvent)=>{if(e.key!=='vectta.session')return;if(!e.newValue){setSession(null);return;}void freshSession().then(next=>{if(next)setSession(next);}).catch(()=>setError('Sessão alterada. Entre novamente para continuar.'));};window.addEventListener('storage',sync);return()=>window.removeEventListener('storage',sync);},[]);
  useEffect(()=>{if(session&&!demo)void load()},[session,demo]);
  useEffect(()=>{if(!session||demo)return;const id=setInterval(()=>void load(),30000);return()=>clearInterval(id)},[session?.access_token,demo]);
  useEffect(()=>{setShowTrail(false);setTrailFocus('')},[selected]);
@@ -163,7 +165,7 @@ export default function Page(){
     if(!user?.id)return;
     if(type==='recovery'){
      localStorage.removeItem('vectta.session');
-     setSession(null);setDemo(false);setRecoveryToken(access);setEmail(user.email||'');
+     setSession(null);setRecoveryToken(access);setEmail(user.email||'');
      return;
     }
     const next:Session={access_token:access,refresh_token:refresh||undefined,user};
@@ -228,31 +230,12 @@ export default function Page(){
    const j:any=await r.json();
    if(!r.ok)throw new Error(j.msg||j.message||j.error_description||'Não foi possível atualizar a senha.');
    localStorage.removeItem('vectta.session');
-   setRecoveryToken('');setRecoveryPassword('');setRecoveryConfirm('');setSession(null);setDemo(false);setMode('login');
+   setRecoveryToken('');setRecoveryPassword('');setRecoveryConfirm('');setSession(null);setMode('login');
    history.replaceState(null,'',location.pathname+location.search);
    setNotice('Senha atualizada. Entre novamente com a nova senha.');
   }catch(e){setError(e instanceof Error?e.message:'Falha ao atualizar a senha.')}finally{setBusy(false)}
  }
- function logout(){localStorage.removeItem('vectta.session');setSession(null);setDemo(false);setProjects([]);setTasks([]);setOps([]);setFeedbacks([]);setCampaigns([]);setCampaignContacts([]);setCampaignRecipients([]);setWorkspaceMembers([]);setWorkspaceInvites([]);setProfile(null)}
- async function enterDemo(){
-  setBusy(true);setError('');setNotice('');
-  try{
-   const r=await fetch(SUPA+'/rest/v1/rpc/get_demo_portfolio',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:'{}'});
-   const j:any=await r.json();
-   if(!r.ok)throw new Error(j.message||'Não foi possível carregar a base demonstrativa.');
-   setDemo(true);
-   setSession({access_token:'demo',user:{id:'demo',email:'demo@vectta.local',user_metadata:{full_name:'Chai'}}});
-   setProjects(Array.isArray(j.projects)?j.projects:demos);
-   setTasks(Array.isArray(j.tasks)?j.tasks:demoTasks);
-   setOps(Array.isArray(j.operations)?j.operations:demoOps);
-   setFeedbacks(Array.isArray(j.feedbacks)?j.feedbacks:[]);
-  }catch(e){
-   setDemo(true);
-   setSession({access_token:'demo',user:{id:'demo',email:'demo@vectta.local',user_metadata:{full_name:'Chai'}}});
-   setProjects(demos);setTasks(demoTasks);setOps(demoOps);setFeedbacks([]);
-   setError(e instanceof Error?e.message:'Falha ao carregar base demo.');
-  }finally{setBusy(false)}
- }
+ function logout(){if(!window.dispatchEvent(new Event('vectta:navigate',{cancelable:true})))return;localStorage.removeItem('vectta.session');setSession(null);setProjects([]);setTasks([]);setOps([]);setFeedbacks([]);setCampaigns([]);setCampaignContacts([]);setCampaignRecipients([]);setWorkspaceMembers([]);setWorkspaceInvites([]);setProfile(null)}
  const current=projects.find(p=>p.id===selected);
  const currentTrailIndex=current?Math.max(0,trailStages.findIndex(x=>x.phase===current.phase)):-1;
  const focusedTrail=trailStages.find(x=>x.phase===trailFocus)||(currentTrailIndex>=0?trailStages[currentTrailIndex]:trailStages[0]);
@@ -476,7 +459,7 @@ export default function Page(){
    setNotice('Envio concluído: '+(j.sent||0)+' enviados, '+(j.failed||0)+' com erro.');await load();
   }catch(e){setError(e instanceof Error?e.message:'Falha ao enviar campanha.')}finally{setBusy(false)}
  }
- function goBack(){if(selected){setSelected('');return}const target=previousView||'Início';setView(target);setPreviousView('Início');setMobile(false)}
+ function goBack(){if(!window.dispatchEvent(new Event('vectta:navigate',{cancelable:true})))return;if(selected){setSelected('');return}const target=previousView||'Início';setView(target);setPreviousView('Início');setMobile(false)}
 
 
  async function inviteWorkspaceMember(){
@@ -527,7 +510,7 @@ export default function Page(){
    const body={client:form.client,segment:form.segment,system:form.system,owner:form.owner,phase:form.phase,start_date:today(),due_date:form.due||null,scope:form.scope,manual_risk_level:'Baixo',metadata:{revenue:Number(form.revenue||0)},cnpj:form.cnpj,contact_name:form.contact_name,contact_email:form.contact_email,contact_phone:form.contact_phone,message_opt_in:form.message_opt_in,preferred_channel:form.preferred_channel};
    const r=await fetch(SUPA+'/rest/v1/projects',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(body)});
    if(!r.ok){const j:any=await r.json();throw new Error(j.message||'Falha ao salvar.');}
-   setModal(false);setForm({client:'',segment:'',system:'',owner:'Chai',phase:'Descoberta',due:'',scope:'',revenue:'0',cnpj:'',contact_name:'',contact_email:'',contact_phone:'',message_opt_in:false,preferred_channel:'WhatsApp'});await load();setNotice('Implantação criada.');
+   setModal(false);setForm({client:'',segment:'',system:'Onfly',owner:'Chai',phase:'Descoberta',due:'',scope:'',revenue:'0',cnpj:'',contact_name:'',contact_email:'',contact_phone:'',message_opt_in:false,preferred_channel:'WhatsApp'});await load();setNotice('Implantação criada.');
   }catch(e){setError(e instanceof Error?e.message:'Falha ao salvar.')}finally{setBusy(false)}
  }
  async function toggleTask(t:Task){
@@ -541,7 +524,7 @@ export default function Page(){
   try{await savePendingTask(next);}
   catch(e){setError(e instanceof Error?e.message:'Não foi possível atualizar a entrega.');}
  }
- function changeView(v:string){setPreviousView(view);setView(v);setSelected('');setMobile(false);setError('');}
+ function changeView(v:string){if(!window.dispatchEvent(new Event('vectta:navigate',{cancelable:true})))return;setPreviousView(view);setView(v);setSelected('');setMobile(false);setError('');}
  async function savePendingTask(task:PendingTask){
   const validation=validatePending(task);
   if(validation)throw new Error(validation);
@@ -621,7 +604,7 @@ export default function Page(){
    <div className={s.authCopy}><span className={s.authEyebrow}>CADA CLIENTE, UM NOVO COMEÇO</span><h1>Implante confiança.<br/><em>Entregue evolução.</em></h1><p>Sua carteira, suas prioridades e a chAI.<br/>Tudo pronto para o próximo passo.</p></div>
    <img className={s.authMascot} src={HOME_MASCOT} width={1122} height={1402} alt="chAI compartilhando uma ideia"/>
   </section>
-  <section className={s.authPanel}><form className={s.authCard} onSubmit={(e)=>{e.preventDefault();void submitAuth();}}><div className={s.brandRow}><img className={s.vt} src={VT} alt="VT"/><div className={s.brandName}>Vectta</div></div>{error&&<div className={s.error}>{error}</div>}{notice&&<div className={s.notice}>{notice}</div>}<div><h2>{mode==='login'?'Entrar':mode==='register'?'Criar conta':'Recuperar acesso'}</h2><p>Sua carteira é privada e isolada por usuário.</p></div>{mode==='register'&&<label>Nome<input className={s.input} value={name} onChange={e=>setName(e.target.value)}/></label>}<label>E-mail<input className={s.input} type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>{mode!=='forgot'&&<label>Senha<input className={s.input} type="password" value={password} minLength={12} onChange={e=>setPassword(e.target.value)}/></label>}<button type="submit" className={s.btn+' '+s.primary} disabled={busy}><ShieldCheck size={16}/>{mode==='login'?'Entrar':mode==='register'?'Criar conta':'Enviar link'}</button>{mode==='login'&&<button type="button" className={s.btn} disabled={busy} onClick={sendAccessLink}><KeyRound size={16}/> Entrar sem senha</button>}<div className={s.authLinks}><button type="button" className={s.link} onClick={()=>setMode(mode==='register'?'login':'register')}>{mode==='register'?'Já tenho conta':'Criar conta'}</button>{mode!=='forgot'?<button type="button" className={s.link} onClick={()=>setMode('forgot')}>Esqueci minha senha</button>:<button type="button" className={s.link} onClick={()=>setMode('login')}>Voltar</button>}</div><button type="button" className={s.btn} onClick={enterDemo}>Explorar demonstração</button></form><img className={s.authChaiCorner} src={CHAI} alt="chAI"/></section>
+  <section className={s.authPanel}><form className={s.authCard} onSubmit={(e)=>{e.preventDefault();void submitAuth();}}><div className={s.brandRow}><img className={s.vt} src={VT} alt="VT"/><div className={s.brandName}>Vectta</div></div>{error&&<div className={s.error}>{error}</div>}{notice&&<div className={s.notice}>{notice}</div>}<div><h2>{mode==='login'?'Entrar':mode==='register'?'Criar conta':'Recuperar acesso'}</h2><p>Sua carteira é privada e isolada por usuário.</p></div>{mode==='register'&&<label>Nome<input className={s.input} value={name} onChange={e=>setName(e.target.value)}/></label>}<label>E-mail<input className={s.input} type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>{mode!=='forgot'&&<label>Senha<input className={s.input} type="password" value={password} minLength={12} onChange={e=>setPassword(e.target.value)}/></label>}<button type="submit" className={s.btn+' '+s.primary} disabled={busy}><ShieldCheck size={16}/>{mode==='login'?'Entrar':mode==='register'?'Criar conta':'Enviar link'}</button>{mode==='login'&&<button type="button" className={s.btn} disabled={busy} onClick={sendAccessLink}><KeyRound size={16}/> Entrar sem senha</button>}<div className={s.authLinks}><button type="button" className={s.link} onClick={()=>setMode(mode==='register'?'login':'register')}>{mode==='register'?'Já tenho conta':'Criar conta'}</button>{mode!=='forgot'?<button type="button" className={s.link} onClick={()=>setMode('forgot')}>Esqueci minha senha</button>:<button type="button" className={s.link} onClick={()=>setMode('login')}>Voltar</button>}</div></form><img className={s.authChaiCorner} src={CHAI} alt="chAI"/></section>
  </div>;
 
  let body:any;
@@ -631,8 +614,8 @@ export default function Page(){
  {showJourney&&renderJourney(current.id)}
  <div className={s.detailGrid}><section className={s.panel}><div className={s.sectionHead}><h2>Plano de entregas</h2><span className={s.badge}>{progress(current)}%</span></div><div className={s.stack}>{tasks.filter(t=>t.project_id===current.id).map(t=><article className={s.task} key={t.id}><button className={s.check+(t.done?' '+s.done:'')} onClick={()=>toggleTask(t)}>{t.done&&<Check size={14}/>}</button><div><strong>{t.title}</strong><span>{t.owner} · {fmt(t.due_date)}</span></div>{t.critical&&<span className={s.badge+' '+s.bad}>Crítica</span>}</article>)}</div></section><div className={s.detailSide}><section className={s.panel}><span className={s.eyebrow}>PRONTIDÃO</span><h2>{progress(current)}% da implantação</h2><div className={s.progress}><i style={{width:progress(current)+'%'}}/></div><div className={s.gates}>{[['Entregas críticas resolvidas',!tasks.some(t=>t.project_id===current.id&&t.critical&&!t.done)],['Requisitos aprovados',ops.some(o=>o.project_id===current.id&&o.kind==='Requisito'&&o.status==='Aprovado')],['Testes com evidência',ops.some(o=>o.project_id===current.id&&o.kind==='Teste'&&o.status==='Aprovado'&&o.evidence)],['Sem chamados impeditivos',!ops.some(o=>o.project_id===current.id&&o.kind==='Chamado'&&o.priority==='Alta')]].map(([label,ok])=><div key={String(label)} className={s.gate+(ok?' '+s.ok:'')}><span>{ok?<Check size={14}/>:<Clock3 size={14}/>}</span><b>{String(label)}</b></div>)}</div></section><section className={s.panel}><span className={s.eyebrow}>CONTATO DO CLIENTE</span><h2>{current.contact_name||'Contato não cadastrado'}</h2><p>{current.contact_email||'Sem e-mail'}{current.contact_phone?' · '+current.contact_phone:''}</p><div className={s.sectionHead}><span>Canal preferido</span><span className={s.badge}>{current.preferred_channel||'—'}</span></div></section><section className={s.panel}><span className={s.eyebrow}>ESCOPO</span><p>{current.scope||'Escopo ainda não registrado.'}</p><div className={s.sectionHead}><span>Risco atual</span><span className={s.badge+' '+badge(risk(current).level)}>{risk(current).level}</span></div></section></div></div></>;
  else if(view==='Jornada e passagem')body=renderJourney(journeyId);
- else if(view==='Início')body=<><section className={s.hero}><div className={s.heroCopy}><span className={s.heroKicker}>SEU ESPAÇO DE EVOLUÇÃO</span><h1>Implante confiança.<br/><em>Entregue evolução.</em></h1><p>Uma boa experiência começa no próximo passo.<br/>Vamos cuidar da sua carteira?</p><div className={s.homeActions}><button className={s.btn+" "+s.primary} onClick={()=>changeView("Pendências")}><ListTodo size={16}/>Ver prioridades</button><button className={s.homeSecondary} onClick={()=>changeView("Implantações")}>Explorar minha carteira</button></div></div><div className={s.heroVisual}><div className={s.heroGlow}/><img className={s.heroMascot} src={HOME_MASCOT} width={1122} height={1402} alt="chAI compartilhando uma ideia"/><span className={s.heroCaption}>Boas ideias. Próximos passos.</span></div></section><section className={s.gaugeGrid} aria-label="Indicadores principais da carteira"><button className={s.gaugeCard} data-tone="cyan" onClick={()=>{setPhase('Todas');changeView('Implantações')}}><div className={s.gaugeRing} style={{'--gauge':Math.min(1,active.length/Math.max(projects.length,1))} as any}><div className={s.gaugeInner}><Layers3 size={18}/><b>{active.length}</b><span>IMPLANTAÇÕES ATIVAS</span><small>carteira em andamento</small></div></div></button><button className={s.gaugeCard} data-tone="pink" onClick={()=>changeView('Pendências')}><div className={s.gaugeRing} style={{'--gauge':Math.min(1,pending.length/Math.max(tasks.length,1))} as any}><div className={s.gaugeInner}><ListTodo size={18}/><b>{pending.length}</b><span>PENDÊNCIAS</span><small>itens abertos</small></div></div></button><button className={s.gaugeCard} data-tone="orange" onClick={()=>{setOverviewRisk('Alto');changeView('Riscos e estratégias')}}><div className={s.gaugeRing} style={{'--gauge':Math.min(1,high/Math.max(projects.length,1))} as any}><div className={s.gaugeInner}><AlertTriangle size={18}/><b>{high}</b><span>RISCO ALTO</span><small>requer atenção</small></div></div></button><button className={s.gaugeCard} data-tone="violet" onClick={()=>{setPhase('Concluída');changeView('Implantações')}}><div className={s.gaugeRing} style={{'--gauge':Math.min(1,projects.filter(p=>p.phase==='Concluída').length/Math.max(projects.length,1))} as any}><div className={s.gaugeInner}><Check size={18}/><b>{projects.filter(p=>p.phase==='Concluída').length}</b><span>CONCLUÍDAS</span><small>total da carteira</small></div></div></button></section><section className={s.moduleGrid}>{[['Jornada e passagem',ClipboardCheck,'Passagem, adoção, treino e planos estratégicos'],['Acompanhamento de CS',Headphones,'Saúde da carteira, reversões e chAI'],['Implantações',Layers3,'Carteira, escopo e etapas'],['Pendências',ListTodo,'Bloqueios e próximos passos'],['Riscos e estratégias',AlertTriangle,'Causa, ação e critério de saída'],['Cronograma',CalendarDays,'Prazos, dependências e marcos'],['Requisitos',ClipboardCheck,'Escopo e aprovação'],['Testes',TestTube2,'Evidência de aceitação'],['Chamados',Headphones,'Problemas e impeditivos'],['Rentabilidade',WalletCards,'Receita, esforço e resultado']].map(([label,Icon,desc]:any)=><button className={s.moduleCard} key={label} onClick={()=>changeView(label)}><Icon size={20}/><div><strong>{label}</strong><span>{desc}</span></div><ChevronRight size={18}/></button>)}</section></>;
-  else if(view==='Acompanhamento de CS')body=<CustomerSuccess data={{projects,tasks,feedbacks,operations:ops}} demo={demo} token={session?.access_token||''} owner={displayName} onSave={saveCSPlan} onOpen={id=>{setSelected(id);setShowJourney(true);}}/>;
+ else if(view==='Início')body=<WorkWorkspace token={session?.access_token||''} projects={projects} tasks={tasks} onNavigate={changeView} onAsk={(prompt,projectId)=>setJourneyCommand({id:Date.now(),prompt,projectId:projectId||''})}/>;
+ else if(view==='Acompanhamento de CS')body=<CustomerSuccess data={{projects,tasks,feedbacks,operations:ops}} demo={demo} token={session?.access_token||''} owner={displayName} onSave={saveCSPlan} onOpen={id=>{setSelected(id);setShowJourney(true);}}/>;
  else if(view==='Visão geral')body=<><header className={s.pageHead}><div><span className={s.eyebrow}>VISÃO GERAL</span><h1>Centro de comando da implantação.</h1><p>Saúde da carteira, riscos, prazos, execução e resultado em uma única leitura.</p></div><div className={s.actions}><button className={s.btn} onClick={()=>changeView('Implantações')}><Layers3 size={16}/> Ver carteira</button><button className={s.btn+' '+s.primary} onClick={()=>setModal(true)}><Plus size={16}/> Nova implantação</button></div></header>
  <section className={s.overviewKpis}>
   <button className={s.overviewKpi} onClick={()=>{setPhase('Todas');changeView('Implantações')}}><span>Implantações ativas</span><b>{active.length}</b><small>{projects.length} clientes na carteira</small></button>
@@ -661,7 +644,7 @@ export default function Page(){
  else if(view==='Relatórios e dados')body=<><header className={s.pageHead}><div><span className={s.eyebrow}>RELATÓRIOS E DADOS</span><h1>Métricas que mostram a saúde da implantação.</h1><p>Indicadores atualizados automaticamente a cada 30 segundos a partir da carteira registrada.</p></div><button className={s.btn} onClick={()=>void load()}><Clock3 size={16}/> Atualizar agora</button></header><section className={s.overviewKpis}><div className={s.overviewKpi}><span>Saúde de prazo</span><b>{scheduleHealth}%</b><small>ativas sem prazo vencido</small></div><div className={s.overviewKpi}><span>Tempo médio</span><b>{avgImplDays}d</b><small>desde o início da implantação</small></div><div className={s.overviewKpi}><span>Execução média</span><b>{avgProgress}%</b><small>entregas concluídas</small></div><div className={s.overviewKpi}><span>Marcos vencidos</span><b>{overdueMilestones}</b><small>entregas abertas após o prazo</small></div><div className={s.overviewKpi}><span>Taxa de conclusão</span><b>{completionRate}%</b><small>implantações concluídas</small></div><div className={s.overviewKpi}><span>UAT / testes aprovados</span><b>{uatRate}%</b><small>{testOps.length} testes registrados</small></div><div className={s.overviewKpi}><span>CSAT</span><b>{avgCsat}</b><small>escala de 1 a 5</small></div><div className={s.overviewKpi}><span>NPS</span><b>{npsScore}</b><small>promotores menos detratores</small></div><div className={s.overviewKpi}><span>No prazo</span><b>{finishedWithDates.length?onTimeRate+'%':'—'}</b><small>projetos concluídos dentro da data</small></div><div className={s.overviewKpi}><span>Desvio médio</span><b>{finishedWithDates.length?(avgScheduleVariance>0?'+':'')+avgScheduleVariance+'d':'—'}</b><small>conclusão real versus planejada</small></div></section><div className={s.reportGrid}><section className={s.dashboardCard}><div className={s.dashboardTitle}><div><h2>Funil das etapas</h2><p>Distribuição atual das implantações.</p></div></div><div className={s.phaseChart}>{phaseOverview.map(item=><button key={item.name} className={s.phaseRow} onClick={()=>{setPhase(item.name);changeView('Implantações')}}><span>{item.name}</span><div className={s.phaseTrack}><i style={{width:(item.count/maxPhase*100)+'%'}}/></div><b>{item.count}</b></button>)}</div></section><section className={s.dashboardCard}><div className={s.dashboardTitle}><div><h2>Qualidade e experiência</h2><p>Sinais de aceite, esforço e satisfação.</p></div></div><div className={s.dataBars}><div><span>Saúde de prazo</span><b>{scheduleHealth}%</b><i><em style={{width:scheduleHealth+'%'}}/></i></div><div><span>Testes aprovados</span><b>{uatRate}%</b><i><em style={{width:uatRate+'%'}}/></i></div><div><span>Execução média</span><b>{avgProgress}%</b><i><em style={{width:avgProgress+'%'}}/></i></div><div><span>CES médio</span><b>{avgCes}</b><small>esforço percebido, escala 1–7</small></div></div></section><section className={s.dashboardCard+' '+s.dashboardWide}><div className={s.dashboardTitle}><div><h2>Indicadores operacionais</h2><p>O que merece atenção agora.</p></div></div><div className={s.opsSnapshot}><button className={s.opsStat} onClick={()=>changeView('Pendências')}><span>Pendências abertas</span><b>{pending.length}</b></button><button className={s.opsStat} onClick={()=>changeView('Pendências')}><span>Críticas</span><b>{criticalOpen}</b></button><button className={s.opsStat} onClick={()=>changeView('Pendências')}><span>Bloqueadas</span><b>{blockedOpen}</b></button><button className={s.opsStat} onClick={()=>changeView('Pendências')}><span>Marcos vencidos</span><b>{overdueMilestones}</b></button><button className={s.opsStat} onClick={()=>changeView('Riscos e estratégias')}><span>Risco alto</span><b>{riskCounts.Alto}</b></button><button className={s.opsStat} onClick={()=>changeView('Feedbacks')}><span>Feedbacks</span><b>{feedbacks.length}</b></button><button className={s.opsStat} onClick={()=>changeView('Implantações')}><span>Conclusão</span><b>{completionRate}%</b></button><button className={s.opsStat} onClick={()=>changeView('Rentabilidade')}><span>Margem</span><b>{margin}%</b></button></div></section></div></>;
  else if(view==='Feedbacks')body=<><header className={s.pageHead}><div><span className={s.eyebrow}>FEEDBACKS</span><h1>Voz do cliente com plano de ação.</h1><p>Feedback negativo não termina em um indicador: ele abre uma estratégia de recuperação da experiência.</p></div></header><section className={s.feedbackSummary}><div><span>CSAT médio</span><b>{avgCsat}</b><small>/ 5</small></div><div><span>NPS</span><b>{npsScore}</b><small>pontos</small></div><div><span>CES médio</span><b>{avgCes}</b><small>/ 7</small></div><div><span>Insatisfeitos</span><b>{dissatisfiedCount}</b><small>{attentionExperienceCount} em atenção</small></div></section><div className={s.feedbackGrid}><section className={s.dashboardCard}><div className={s.dashboardTitle}><div><h2>Novo feedback</h2><p>Registre uma percepção recebida em reunião, ligação, e-mail ou mensagem.</p></div></div><div className={s.form}><label className={s.full}>Implantação<select className={s.input} value={feedbackForm.project_id} onChange={e=>setFeedbackForm({...feedbackForm,project_id:e.target.value})}><option value="">Selecione</option>{projects.map(p=><option key={p.id} value={p.id}>{p.client}</option>)}</select></label><label>Contato<input className={s.input} value={feedbackForm.contact_name} onChange={e=>setFeedbackForm({...feedbackForm,contact_name:e.target.value})}/></label><label>Cargo / papel<input className={s.input} value={feedbackForm.contact_role} onChange={e=>setFeedbackForm({...feedbackForm,contact_role:e.target.value})}/></label><label>Canal<select className={s.input} value={feedbackForm.channel} onChange={e=>setFeedbackForm({...feedbackForm,channel:e.target.value})}><option>Reunião</option><option>WhatsApp</option><option>E-mail</option><option>Ligação</option><option>Pesquisa</option></select></label><label>CSAT 1–5<input className={s.input} type="number" min="1" max="5" value={feedbackForm.csat} onChange={e=>setFeedbackForm({...feedbackForm,csat:e.target.value})}/></label><label>NPS 0–10<input className={s.input} type="number" min="0" max="10" value={feedbackForm.nps} onChange={e=>setFeedbackForm({...feedbackForm,nps:e.target.value})}/></label><label>CES 1–7<input className={s.input} type="number" min="1" max="7" value={feedbackForm.ces} onChange={e=>setFeedbackForm({...feedbackForm,ces:e.target.value})}/></label><label className={s.full}>Feedback<textarea className={s.textarea} value={feedbackForm.comment} onChange={e=>setFeedbackForm({...feedbackForm,comment:e.target.value})}/></label></div><button className={s.btn+' '+s.primary} onClick={saveFeedback}>Registrar feedback</button></section><section className={s.dashboardCard}><div className={s.dashboardTitle}><div><h2>Histórico e recuperação</h2><p>Todo sinal insatisfatório recebe uma orientação prática de resposta.</p></div></div><div className={s.feedbackList}>{feedbacks.map(f=>{const p=projects.find(x=>x.id===f.project_id);const fh=feedbackHealth(f);const plan=p?experiencePlan(p):null;return <article key={f.id} className={s.feedbackCard}><div><div><strong>{p?.client||'Implantação'}</strong><span>{f.contact_name||'Contato'} · {f.channel}</span></div><span className={s.badge+' '+experienceBadge(fh.level)}>{fh.level}</span></div><p>{f.comment}</p><div className={s.feedbackScores}><span>CSAT <b>{f.csat??'—'}</b></span><span>NPS <b>{f.nps??'—'}</b></span><span>CES <b>{f.ces??'—'}</b></span></div>{plan&&fh.level!=='Saudável'&&<div className={s.recoveryPlan}><span className={s.eyebrow}>PLANO VECTTA DE RECUPERAÇÃO</span><strong>{plan.actions[0]}</strong><p>{plan.communication}</p><div><span><b>Responsável</b>{plan.owner}</span><span><b>Prazo de resposta</b>{plan.sla}</span><span><b>Cadência</b>{plan.cadence}</span><span><b>Sucesso</b>{plan.success}</span></div></div>}</article>})}{!feedbacks.length&&<div className={s.empty}>Nenhum feedback registrado ainda.</div>}</div></section></div></>;
  else if(view==='Campanhas')body=<><header className={s.pageHead}><div><span className={s.eyebrow}>CAMPANHAS</span><h1>Mensagens em escala, com contexto.</h1><p>Escolha a base, segmente os contatos, revise a audiência e prepare o disparo pelo canal oficial.</p></div></header>
- <WhatsAppTestLab/>
+ 
 
  <div className={s.campaignGrid}>
   <section className={s.dashboardCard}>
@@ -714,7 +697,7 @@ export default function Page(){
  if(view==='Administração'&&!current)body=<><header className={s.pageHead}><div><span className={s.eyebrow}>SEU ESPAÇO, BEM ORGANIZADO</span><h1>Administração</h1><p>Equipe, permissões, segurança e orientações de uso em um só lugar.</p></div></header><div className={s.adminTabs} role="tablist" aria-label="Áreas da administração">{adminSections.map((section,index)=>{const Icon=[ShieldCheck,KeyRound,BookOpen][index];return <button key={section} id={'admin-tab-'+index} type="button" role="tab" aria-selected={adminSection===section} aria-controls={'admin-panel-'+index} tabIndex={adminSection===section?0:-1} onClick={()=>setAdminSection(section)} onKeyDown={e=>{const next=e.key==='ArrowRight'?(index+1)%3:e.key==='ArrowLeft'?(index+2)%3:e.key==='Home'?0:e.key==='End'?2:null;if(next!==null){e.preventDefault();setAdminSection(adminSections[next]);document.getElementById('admin-tab-'+next)?.focus();}}}><Icon size={18}/>{section}</button>})}</div><section className={s.adminContent} role="tabpanel" id={'admin-panel-'+adminSections.indexOf(adminSection)} aria-labelledby={'admin-tab-'+adminSections.indexOf(adminSection)}>{body}</section></>;
 
  const chaiModuleByView:Partial<Record<string,ChaiModule>>={
-  'Início':'inicio',
+  'Início':'trabalho',
   'Visão geral':'inicio',
   'Implantações':'implantacoes',
   'Jornada e passagem':'implantacoes',
@@ -723,7 +706,7 @@ export default function Page(){
   'Testes':'testes',
   'Rentabilidade':'rentabilidade'
  };
- const contextualModule:ChaiModule|undefined=current?'implantacoes':chaiModuleByView[view];
+ const contextualModule:ChaiModule=current?'implantacoes':chaiModuleByView[view]||'inicio';
  const showContextualChai=Boolean(contextualModule)&&view!=='Acompanhamento de CS';
  const pageBody=showContextualChai&&contextualModule
   ?<div className={s.contextPageGrid}><div className={s.contextPageBody}>{body}</div><ChaiAssistant module={contextualModule} demo={demo} token={session?.access_token||''} projects={projects.map(p=>({id:p.id,client:p.client,journey:savedJourney(p)}))} projectId={current?.id||(view==='Jornada e passagem'?(journeyId||projects[0]?.id||''):'')} command={journeyCommand}/></div>
@@ -736,8 +719,9 @@ export default function Page(){
    <nav className={s.nav}>{nav.map(([label,Icon])=><button key={label} className={view===label&&!selected?s.active:''} onClick={()=>changeView(label)}><Icon size={18}/><span>{label}</span>{label==='Pendências'&&<i>{pending.length}</i>}</button>)}</nav>
    <div className={s.sideBottom}><button className={s.profile} onClick={()=>changeView('Meu perfil')}>{profile?.avatar_url?<img className={s.avatarImg} src={profile.avatar_url} alt="Perfil"/>:<div className={s.avatar}>{displayName[0]?.toUpperCase()}</div>}<div><strong>{displayName}</strong><span>{demo?'Demonstração isolada':profile?.workspace_name||'Carteira pessoal'}</span></div></button></div>
   </aside>
-  <div className={s.main}><header className={s.topbar}><div className={s.topbarStart}><button className={s.btn+' '+s.ghost} onClick={()=>setMobile(!mobile)}><Menu size={18}/></button>{(selected||view!=='Início')&&<button className={s.backBtn} onClick={goBack}>← Voltar</button>}<span>Vectta <i>/</i> {current?.client||view}</span></div><div className={s.secure}><ShieldCheck size={16}/>{demo?'demonstração · dados fictícios':'ambiente seguro'}<button className={s.btn+' '+s.ghost} onClick={logout}>{demo?<><KeyRound size={15}/> Entrar na minha conta</>:<><LogOut size={15}/> Sair</>}</button></div></header><main className={s.content}>{Object.keys(journeyDrafts).length>0&&view!=='Jornada e passagem'&&!showJourney&&<div className={s.notice}>Há alterações de jornada ainda não salvas. <button className={s.link} onClick={()=>{setJourneyId(Object.keys(journeyDrafts)[0]);changeView('Jornada e passagem');}}>Revisar e salvar</button></div>}{error&&<div className={s.error}>{error}</div>}{notice&&<div className={s.notice}>{notice}</div>}{pageBody}<footer className={s.footer}><span>Vectta · Portal de implementação</span></footer><div className={s.brandFooter}><img className={s.mainChaiSignature} src={CHAI} alt="chAI"/></div></main></div>
+  <div className={s.main}><header className={s.topbar}><div className={s.topbarStart}><button className={s.btn+' '+s.ghost} onClick={()=>setMobile(!mobile)}><Menu size={18}/></button>{(selected||view!=='Início')&&<button className={s.backBtn} onClick={goBack}>← Voltar</button>}<span>Vectta <i>/</i> {current?.client||view}</span></div><div className={s.secure}><ShieldCheck size={16}/>{'espaço pessoal'}<button className={s.btn+' '+s.ghost} onClick={logout}>{demo?<><KeyRound size={15}/> Entrar na minha conta</>:<><LogOut size={15}/> Sair</>}</button></div></header><main className={s.content}>{Object.keys(journeyDrafts).length>0&&view!=='Jornada e passagem'&&!showJourney&&<div className={s.notice}>Há alterações de jornada ainda não salvas. <button className={s.link} onClick={()=>{setJourneyId(Object.keys(journeyDrafts)[0]);changeView('Jornada e passagem');}}>Revisar e salvar</button></div>}{error&&<div className={s.error}>{error}</div>}{notice&&<div className={s.notice}>{notice}</div>}{pageBody}<footer className={s.footer}><span>Vectta · Portal de implementação</span></footer><div className={s.brandFooter}><img className={s.mainChaiSignature} src={CHAI} alt="chAI"/></div></main></div>
   {modal&&<div className={s.modalBack}><div className={s.modal}><div className={s.modalHead}><h2>Nova implantação</h2><button className={s.btn+' '+s.ghost} onClick={()=>setModal(false)}><X size={18}/></button></div><div className={s.form}><label>Cliente<input className={s.input} value={form.client} onChange={e=>setForm({...form,client:e.target.value})}/></label><label>Sistema<input className={s.input} value={form.system} onChange={e=>setForm({...form,system:e.target.value})}/></label><label>Segmento<input className={s.input} value={form.segment} onChange={e=>setForm({...form,segment:e.target.value})}/></label><label>CNPJ<input className={s.input} value={form.cnpj} onChange={e=>setForm({...form,cnpj:e.target.value})} placeholder="00.000.000/0000-00"/></label><label>Contato principal<input className={s.input} value={form.contact_name} onChange={e=>setForm({...form,contact_name:e.target.value})}/></label><label>E-mail do contato<input className={s.input} type="email" value={form.contact_email} onChange={e=>setForm({...form,contact_email:e.target.value})}/></label><label>Celular do contato<input className={s.input} value={form.contact_phone} onChange={e=>setForm({...form,contact_phone:e.target.value})}/></label><label>Canal preferido<select className={s.input} value={form.preferred_channel} onChange={e=>setForm({...form,preferred_channel:e.target.value})}><option>WhatsApp</option><option>E-mail</option><option>SMS</option><option>Ligação</option></select></label><label className={s.checkLabel}><input type="checkbox" checked={form.message_opt_in} onChange={e=>setForm({...form,message_opt_in:e.target.checked})}/><span>Cliente autorizou comunicações e campanhas</span></label><label>Responsável<input className={s.input} value={form.owner} onChange={e=>setForm({...form,owner:e.target.value})}/></label><label>Etapa<select className={s.input} value={form.phase} onChange={e=>setForm({...form,phase:e.target.value})}>{phases.map(x=><option key={x}>{x}</option>)}</select></label><label>Prazo<input className={s.input} type="date" value={form.due} onChange={e=>setForm({...form,due:e.target.value})}/></label><label className={s.full}>Escopo<textarea className={s.textarea} value={form.scope} onChange={e=>setForm({...form,scope:e.target.value})}/></label><label>Receita<input className={s.input} type="number" value={form.revenue} onChange={e=>setForm({...form,revenue:e.target.value})}/></label></div><div className={s.modalFoot}><button className={s.btn} onClick={()=>setModal(false)}>Cancelar</button><button className={s.btn+' '+s.primary} disabled={busy} onClick={createProject}>Criar implantação</button></div></div></div>}
  </div>;
 }
+
 

@@ -8,7 +8,7 @@ const KEY=process.env.SUPABASE_PUBLISHABLE_KEY??process.env.NEXT_PUBLIC_SUPABASE
 export async function GET(){
   const started=Date.now();
   try{
-    const r=await fetch(SUPA+'/rest/v1/demo_portfolio_snapshots?select=id&limit=1',{
+    const r=await fetch(SUPA+'/rest/v1/projects?select=id&limit=0',{
       headers:{apikey:KEY},
       cache:'no-store',
       signal:AbortSignal.timeout(5000)
@@ -29,3 +29,4 @@ export async function GET(){
     },{status:503,headers:{'Cache-Control':'no-store'}});
   }
 }
+

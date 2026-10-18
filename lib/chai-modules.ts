@@ -1,4 +1,5 @@
 export const chaiModules = {
+  trabalho: {label:'Copiloto de trabalho',eyebrow:'chAI · Rotina e evolução',intro:'Conecta passagens comerciais, incidentes, reuniões e evidências para apoiar sua próxima decisão.',placeholder:'O que preciso resolver primeiro?',suggestions:['Organize minhas três prioridades de hoje','Revise lacunas da passagem comercial','Prepare meu resumo semanal com evidências','Como evoluir minha autonomia nos próximos 30 dias?']},
   inicio: {
     label: 'Visão executiva',
     eyebrow: 'chAI · Centro de comando',
@@ -53,6 +54,7 @@ export const chaiModules = {
 export type ChaiModule = keyof typeof chaiModules;
 
 export const chaiModuleLabels:Record<ChaiModule,string>={
+  trabalho:'Espaço de trabalho',
   inicio:'Início / visão geral',
   implantacoes:'Implantações',
   cs:'Acompanhamento de CS',
@@ -61,3 +63,4 @@ export const chaiModuleLabels:Record<ChaiModule,string>={
   testes:'Testes',
   rentabilidade:'Rentabilidade'
 };
+

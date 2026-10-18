@@ -25,9 +25,12 @@ const base='https://test.nexora.invalid';
 const client=()=>({cookie:'',access:''});
 async function call(c,data=null,status=200,proof=true,extraHeaders={}){const req=new Request(base+'/api/nexora',{method:data?'POST':'GET',headers:{Origin:base,'Content-Type':'application/json',cookie:c.cookie,...(proof?{'X-Vectta-Access':c.access}:{}),...extraHeaders},...(data?{body:JSON.stringify(data)}:{})});const r=await(data?POST(req):GET(req));const result=await r.json();assert.equal(r.status,status,JSON.stringify(result));const cookie=r.headers.get('set-cookie');if(cookie){c.cookie=cookie.split(';')[0];if(data?.action==='login'||data?.action==='register')assert(!cookie.includes('Max-Age='),'Não deve persistir cookie de acesso');}if(result.access)c.access=result.access;return result;}
 const a=client(),b=client();await call(a,null,401);
-await call(a,{action:'login',email:'demo@nexora.app',password:'WrongPassword2026'},401);
-for(const c of [a,b])await call(c,{action:'login',email:'demo@nexora.app',password:'VecttaDemo2026!'});
-const sa=await call(a),sb=await call(b);assert.equal(sa.projects.length,30);assert.equal(sa.tasks.length,210);assert(!sb.projects.some(p=>p.id===sa.projects[0].id));
+await call(a,{action:'login',email:'demo@nexora.app',password:'WrongPassword2026'},410);
+await call(a,{action:'login',email:'demo@vectta.app',password:'VecttaDemo2026!'},410);
+assert.equal(db.prepare('SELECT count(*) AS n FROM projects').get().n,0,'Demonstração não cria dados');
+for(const [index,c] of [a,b].entries())await call(c,{action:'register',email:'isolation'+index+'@example.com',name:'Teste',password:'RumoClaro#85Foco'});
+await call(a,{action:'project.save',project:{client:'Cliente isolado',segment:'Serviços',system:'Onfly',owner:'Teste',phase:'Descoberta',start:'2026-10-26',due:'2026-11-26',completed:'',scope:'Teste local',risk:'Baixo'}});
+const sa=await call(a),sb=await call(b);assert.equal(sa.projects.length,1);assert.equal(sb.projects.length,0);
 await call(a,null,401,false);await call(a,{action:'project.save',project:sa.projects[0]},401,false);
 const p={...sa.projects[0],client:'Teste da abertura'};await call(a,{action:'project.save',project:p});assert.equal((await call(a)).projects.find(x=>x.id===p.id).client,p.client);await call(b,{action:'project.save',project:p},404);
 const personal=client(),email='analista@example.com';await call(personal,{action:'register',email,name:'Analista',password:'PersonalTest2026!'});assert.equal((await call(personal)).projects.length,0);
@@ -78,5 +81,6 @@ await call(personal,{action:'logout'});await call(personal,{action:'login',email
 const {assess}=await import(pathToFileURL(resolve(out,'operations.mjs')).href);
 const risk=assess({...own,due:'2026-09-01'},[{...first,done:0,blocked:1}],[], '2026-09-30');assert.equal(risk.level,'Alto');assert(risk.causes.every(c=>c.reason&&c.action&&c.exit));
 console.log('PASS: módulos, evidência, prontidão, importação atômica, duplicidade, fila, dependência circular, isolamento e persistência.');
-console.log('PASS: credenciais obrigatórias, redefinição segura de senha, invalidação de sessões, identidade autenticada, leitura e escrita sem prova recusadas, dados pessoais preservados, logout e demonstrações isoladas.');
+console.log('PASS: credenciais obrigatórias, redefinição segura de senha, invalidação de sessões, identidade autenticada, leitura e escrita sem prova recusadas, dados pessoais preservados, logout e demonstração encerrada.');
 db.close();
+

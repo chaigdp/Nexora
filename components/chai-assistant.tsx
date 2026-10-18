@@ -115,7 +115,7 @@ export default function ChaiAssistant({module,demo,token,projects,projectId='',o
         {asking&&<p className={s.assistantThinking}><span/><span/><span/> Analisando sua carteira...</p>}
       </div>
       {error&&<div className={s.assistantError} role="alert">{error}</div>}
-      <details className={s.assistantPrompts} open={!relevant.length}><summary>Ideias para começar</summary><div>{config.suggestions.map(q=><button key={q} disabled={asking||!projects.length} onClick={()=>void ask(q)}>{q}</button>)}</div></details>
+      <details className={s.assistantPrompts} open={!relevant.length}><summary>Ideias para começar</summary><div>{config.suggestions.map(q=><button key={q} disabled={asking} onClick={()=>void ask(q)}>{q}</button>)}</div></details>
       <form className={s.assistantComposer} onSubmit={e=>{e.preventDefault();void ask();}}>
         <div><textarea aria-label="Pergunte à chAI" value={question} onChange={e=>setQuestion(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();if(!asking&&question.trim())void ask();}}} maxLength={2000} rows={2} placeholder="Qual é o próximo passo?" disabled={asking}/><button type="submit" aria-label="Enviar pergunta" disabled={asking||!question.trim()}><Send size={18}/></button></div>
         <small>Você decide. A chAI ajuda a planejar.</small>
@@ -127,3 +127,4 @@ export default function ChaiAssistant({module,demo,token,projects,projectId='',o
     </button>
   </div>;
 }
+
