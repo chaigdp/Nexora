@@ -18,7 +18,7 @@ test('chAI intent becomes the right CS plan category',()=>{
   assert.equal(inferCSCategory('Faça um acompanhamento executivo'),'Acompanhamento');
 });
 test('every requested Vectta area has a contextual chAI configuration',()=>{
-  assert.deepEqual(Object.keys(chaiModules).sort(),['cs','feedbacks','implantacoes','inicio','rentabilidade','riscos','testes','trabalho'].sort());
+  assert.deepEqual(Object.keys(chaiModules).sort(),['cs','feedbacks','implantacoes','inicio','rentabilidade','riscos','testes','trabalho','metas'].sort());
   for(const config of Object.values(chaiModules)){assert.ok(config.label);assert.ok(config.intro);assert.equal(config.suggestions.length,4);}
 });
 
@@ -101,6 +101,17 @@ test('selected work record is fetched with authenticated scope even outside the 
  assert.match(payload.messages[1].content,/"found":true/);
 });
 
+test('Metas context stays separate from client operation and explains its numbers',async()=>{
+ const m=mockRequest();const workId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ const goal={id:workId,kind:'growth',title:'Meta pessoal',status:'Aberto',priority:'P2',due_date:null,data:{goalType:'goal',baseline:'0',current:'5',target:'10',evidence:'Relatório validado',measuredAt:'2026-10-21'}};
+ const request=async(url,options)=>{if(url.includes('/work_items?')){assert.match(url,/kind=eq.growth/);return Response.json([goal]);}return m.request(url,options);};
+ const body={module:'metas',messages:[{role:'user',content:'Analise o registro '+workId}]};
+ const ai=await handleChai(req(body),{request,key:'fake'});assert.equal(ai.status,200);
+ const context=JSON.parse(m.calls.find(c=>c.url.includes('/chat/completions')).options.body).messages[1].content;
+ assert.match(context,/Meta pessoal/);assert.ok(!context.includes('Cliente teste'));assert.ok(!context.includes('"clients"'));
+ const local=await (await handleChai(req(body),{request,key:''})).json();assert.match(local.answer,/50%/);assert.match(local.answer,/Relatório validado/);assert.match(local.answer,/O que ainda falta saber/);
+});
+
 test('provider authentication failure is explicit and does not retry another model',async()=>{
  const m=mockRequest({providerStatus:401});
  const response=await handleChai(req({module:'trabalho',messages:[{role:'user',content:'Planeje meu dia'}]}),{...m,key:'fake'});
@@ -138,3 +149,4 @@ test('free mode fails closed when pricing changes or cannot be verified',async()
  const m=mockRequest();const request=(url,o)=>url.endsWith('/v1/models')?Promise.reject(new Error('offline')):m.request(url,o);
  assert.equal((await (await handleChai(req(),{request,key:'fake'})).json()).fallback_reason,'free_unavailable');assert.ok(!m.calls.some(c=>c.url.includes('/chat/completions')));
 });
+

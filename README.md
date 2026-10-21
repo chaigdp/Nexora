@@ -67,3 +67,19 @@ Em 07/10/2026 o fluxo automatizado executou 200 requisições com concorrência 
 - realizar revisão periódica de segurança e recuperação de desastre.
 
 Consulte `docs/GO_LIVE_2026-10-07.md` e `docs/LGPD_RETENCAO.md`.
+
+
+### Metas e assistente pós-reunião (21/10/2026)
+
+- **Metas** é uma área própria no menu, separada da operação dos clientes. Reúne metas da empresa/pessoais, o plano de evolução e contribuições. Os registros de evolução existentes continuam disponíveis em Contribuições.
+- **Importar metas da empresa** aceita CSV UTF-8 (modelo disponível na tela) e TXT, com até 50 metas e 100 KB. Cada linha vira um rascunho revisável, salvo individualmente. Não armazena o arquivo original. PDF/imagens precisam ter seu texto copiado para TXT; Excel deve ser exportado como CSV.
+- Metas numéricas mostram `(atual − inicial) / (meta − inicial) × 100`, inclusive para metas de redução. Valores ausentes ou inicial igual ao alvo deixam o progresso indefinido. Valor atual exige fonte e data da medição. Metas qualitativas usam critério, resultado e evidência.
+- **Início → Organizar pós-reunião** classifica anotações por regras locais. Prefixos `Ação:`, `Bloqueio:`, `Decisão:`, `Dúvida:` e `Resultado:` ajudam na classificação. A pessoa pode corrigir categoria, texto, responsável, prazo e situação, mantendo o trecho literal de origem. Não há chamada a modelo na extração.
+- **Revisar o que será salvo → Confirmar e salvar** é obrigatório. As propostas selecionadas são gravadas juntas no registro da reunião e alimentam Meu dia. Concluir uma ação exige evidência. Propostas desmarcadas deixam o acompanhamento após confirmação. Não cria tarefas duplicadas no módulo Pendências.
+- **Indicadores com origem** expõem fórmula, recorte e registros usados. A fila reúne combinados revisados e pendências existentes, com até três prioridades; metas pessoais ficam fora. Compromissos cadastrados nas duas áreas não são deduplicados automaticamente.
+- **Passagem para CS** prepara um rascunho por cliente, com contexto, resultados relatados, decisões, pendências, lacunas e IDs/revisões das fontes. É um retrato dos dados no momento da preparação. Copiar não envia; concluir exige responsável e aceite de CS. A Jornada e passagem existente mantém seus próprios critérios operacionais.
+- **Contribuições** registra problema, ação, resultado, evidência e participação do time. A chAI possui contexto próprio em Metas e apresenta fatos, fontes e lacunas também na análise por regras. Continua restrita ao modelo comprovadamente gratuito, sem alternativa paga.
+
+Persistência usa `work_items.data`, já protegido por RLS por usuário e revisão otimista. Não há nova tabela, migração ou alteração de permissões. `growth + data.goalType=goal` identifica metas; `handoff + data.handoffType=cs` identifica resumos para CS. Notas/revisões passam por limites de tamanho e validação de trechos no servidor.
+
+Validação: `tests/post-meeting.mjs` cobre origem literal, ações sem dados inventados, indicadores, passagem, isolamento de metas/clientes, persistência e conflito. `tests/goals.mjs` cobre CSV/TXT, fórmulas, dados ausentes e atribuição ao time. Essas suítes fazem parte do CI junto aos testes existentes.

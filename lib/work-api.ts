@@ -14,7 +14,7 @@ export async function handleWork(req:Request,request:typeof fetch=fetch){
   if(req.method==='GET'){
    const r=await request(SUPA+'/rest/v1/work_items?select=*&order=updated_at.desc&limit=1001',{headers,cache:'no-store',signal:AbortSignal.timeout(10000)});
    if(!r.ok)throw Error();const rows=await r.json();if(!Array.isArray(rows))throw Error();
-   return reply({items:rows.slice(0,1000),limited:rows.length>=1000});
+   return reply({items:rows.slice(0,1000),limited:rows.length>1000});
   }
   if(req.method!=='POST')return reply({message:'Método não permitido.'},405);
   if(!req.headers.get('content-type')?.startsWith('application/json'))return reply({message:'Envie JSON.'},415);
@@ -37,3 +37,4 @@ export async function handleWork(req:Request,request:typeof fetch=fetch){
   return reply({item:rows[0]},creating?201:200);
  }catch{return reply({message:'Não foi possível confirmar a operação. Atualize a lista antes de repetir um salvamento.'},503);}
 }
+

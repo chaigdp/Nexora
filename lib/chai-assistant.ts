@@ -1,3 +1,5 @@
+import {readReview,workEvidenceAnswer,workMetrics} from './post-meeting';
+import {goalsEvidenceAnswer} from './goals';
 import {WORK_PLAYBOOK,prioritizeWork,type WorkItem} from './workspace';
 import {client360, portfolioCS, csToday, type CSData} from './customer-success';
 import {chaiModuleLabels,type ChaiModule} from './chai-modules';
@@ -143,7 +145,7 @@ export function parseChatRequest(body:unknown) {
   if(projectId&&!uuid.test(projectId)&&!(demo&&demoId.test(projectId)))throw new Error('invalid_project');
   const moduleValue=typeof p.module==='string'?p.module:'cs';
   if(!Object.prototype.hasOwnProperty.call(chaiModuleLabels,moduleValue))throw new Error('invalid_module');
-  const module=moduleValue as ChaiModule;
+  const selectedModule=moduleValue as ChaiModule;
   if(!Array.isArray(p.messages)||!p.messages.length||p.messages.length>8)throw new Error('invalid_messages');
   const messages=p.messages.map((raw):ChatMessage=>{
     if(!raw||typeof raw!=='object')throw new Error('invalid_message');
@@ -154,7 +156,7 @@ export function parseChatRequest(body:unknown) {
   if(messages[messages.length-1].role!=='user'||messages.reduce((n,m)=>n+m.content.length,0)>14000)throw new Error('invalid_messages');
   const demoJourney=p.demo_journey==null?null:parseJourney(p.demo_journey);
   if(p.demo_journey!=null&&(!demo||!projectId||!demoJourney||demoJourney.id!==projectId))throw new Error('invalid_demo_journey');
-  return {projectId,messages,demo,module,demoJourney};
+  return {projectId,messages,demo,module:selectedModule,demoJourney};
 }
 
 export async function handleChai(req:Request,options:Options={}) {
@@ -218,6 +220,7 @@ export async function handleChai(req:Request,options:Options={}) {
     if(input.projectId&&!data.projects.some(p=>p.id===input.projectId))return reply({message:'Esse cliente não está disponível na sua carteira.'},404);
     const ranked=portfolioCS(data);
     const moduleGuidance:Record<ChaiModule,string>={
+      metas:'Apoie somente metas da empresa, plano de desenvolvimento e contribuições. Separe metas oficiais de propostas pessoais. Explique origem dos números, período, progresso e lacunas. Nunca garanta promoção. Não misture estes objetivos com a fila operacional de clientes.',
       trabalho:'Apoie a rotina pessoal da analista. Use registros de passagem, incidentes, reuniões, conhecimento e evolução. Relacione prioridades e evidências. Critérios de promoção e SLAs internos precisam ser confirmados com a liderança.',
       inicio:'Faça leitura executiva. Priorize o que exige ação hoje, explique por que, indique impacto operacional e próximo passo. Evite listar tudo; destaque o essencial.',
       implantacoes:'Atue como especialista em onboarding e implantação. Conecte fase, prazo, tarefas, bloqueios e dependências. Identifique gargalos e proponha próximo marco com responsável e evidência.',
@@ -261,8 +264,8 @@ export async function handleChai(req:Request,options:Options={}) {
     };
     let workItems:WorkItem[]=[];let workUnavailable=false;let selectedWork:WorkItem|null=null;
     const requestedWorkId=input.messages.at(-1)?.content.match(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i)?.[0];
-    const workBase=SUPA+'/rest/v1/work_items?select=id,project_id,kind,title,status,priority,due_date,data,updated_at';
-    const workFilter=input.projectId?'&project_id=eq.'+input.projectId:'';
+    const workBase=SUPA+'/rest/v1/work_items?select=id,project_id,kind,title,status,priority,due_date,data,revision,updated_at';
+    const workFilter=(input.projectId?'&project_id=eq.'+input.projectId:'')+(input.module==='metas'?'&kind=eq.growth':'&kind=neq.growth');
     try{
       const queries=[workBase+'&order=updated_at.desc&limit=101'+workFilter];
       if(requestedWorkId)queries.push(workBase+'&id=eq.'+requestedWorkId+workFilter+'&limit=1');
@@ -274,8 +277,8 @@ export async function handleChai(req:Request,options:Options={}) {
     }catch{workUnavailable=true;}
     const prioritized=prioritizeWork(workItems.slice(0,100)).map(x=>x.item);
     const contextItems=[...(selectedWork?[selectedWork]:[]),...prioritized,...workItems.slice(0,100).filter(x=>x.status==='Concluído')].filter((item,index,all)=>all.findIndex(x=>x.id===item.id)===index).slice(0,20);
-    const workContext={unavailable:workUnavailable,requestedRecord:requestedWorkId?{id:requestedWorkId,found:!!selectedWork}:null,coverage:'Até 20 registros priorizados entre os 100 mais recentes; o registro solicitado é consultado separadamente. Textos limitados a 700 caracteres por campo. Análise parcial, não busca em toda a base.',items:contextItems.map(i=>({...i,data:Object.fromEntries(Object.entries(i.data||{}).map(([k,v])=>[k,String(v).slice(0,700)]))}))};
-    const context={work:workContext,date:csToday(),scope:input.projectId?'Cliente selecionado':'Carteira: resumo e até 12 prioridades',total:ranked.length,module:moduleSnapshot,
+    const workContext={unavailable:workUnavailable,requestedRecord:requestedWorkId?{id:requestedWorkId,found:!!selectedWork}:null,coverage:'Até 20 registros priorizados entre os 100 mais recentes; o registro solicitado é consultado separadamente. Textos limitados a 700 caracteres por campo e até 10 propostas revisadas por reunião. Análise parcial, não busca em toda a base.',items:contextItems.map(i=>({...i,data:Object.fromEntries(Object.entries(i.data||{}).filter(([k])=>k!=='review').map(([k,v])=>[k,String(v).slice(0,700)])),reviewed:readReview(i)?.entries.slice(0,10).map(p=>({...p,text:p.text.slice(0,400),quote:p.quote.slice(0,400),completion:p.completion.slice(0,400)}))})),metrics:input.module==='metas'?undefined:workMetrics(workItems.slice(0,100),data.tasks,csToday()).slice(0,3).map(m=>({label:m.label,count:m.sources.length,formula:m.formula,sourceIds:m.sources.slice(0,30).map(s=>s.id),coverage:'Recorte dos registros disponíveis; IDs limitados aos 30 primeiros.'}))};
+    const context=input.module==='metas'?{work:workContext,date:csToday(),scope:'Metas e desenvolvimento pessoal'}:{work:workContext,date:csToday(),scope:input.projectId?'Cliente selecionado':'Carteira: resumo e até 12 prioridades',total:ranked.length,module:moduleSnapshot,
       counts:Object.fromEntries(['Crítico','Atenção','Estável','Sem dados'].map(level=>[level,ranked.filter(x=>x.level===level).length])),
       clients:ranked.slice(0,12).map(x=>{const view=client360(x.project.id,data);return {client:x.project.client,phase:x.project.phase,portfolio:x.project.metadata?.cs_portfolio||null,health:x.level,score:x.score,signals:x.signals,gaps:x.gaps,journey:journeySnapshot(x.project,csToday()),
         latestFeedback:x.latest?{date:x.latest.created_at,comment:redact(x.latest.comment||'').slice(0,700)}:null,
@@ -298,12 +301,13 @@ export async function handleChai(req:Request,options:Options={}) {
 
     const notices:Record<string,string>={not_configured:'A conexão com a IA generativa ainda não está configurada.',authentication:'A conexão com a IA generativa precisa de autenticação válida.',verification:'O provedor de IA exige concluir a verificação da conta.',budget:'O limite de uso da IA generativa foi atingido.',credits:'O provedor de IA informou falta de créditos disponíveis.',permission:'O provedor não autorizou o uso da IA nesta conta.',rate_limit:'O serviço de IA está limitando novas consultas. Tente mais tarde.',timeout:'A IA generativa não respondeu dentro do tempo esperado.',empty_response:'O serviço de IA não retornou uma resposta utilizável.',unavailable:'A IA generativa está temporariamente indisponível.'};
     const fallbackNotice='Modo gratuito. '+(gateway.reason==='free_unavailable'?'Não foi possível confirmar um modelo com preço zero.':notices[gateway.reason]||notices.unavailable)+' A análise por regras continua disponível, sem recorrer a modelos pagos.';
-    if(input.module==='trabalho'){const priorities=prioritizeWork(workItems).slice(0,3);return reply({answer:workUnavailable?'Não consegui consultar seus registros de trabalho. Tente novamente antes de priorizar.':priorities.length?'Prioridades pelos registros disponíveis:\n'+priorities.map((x,i)=>(i+1)+'. '+x.item.title+' ['+x.item.id+'] · '+x.reason+'\nPróximo passo: '+(x.item.data.nextAction||'A definir')+' · Responsável: '+(x.item.data.owner||'A definir')+' · Prazo: '+(x.item.due_date||'A combinar')).join('\n\n')+'\n\nEsta leitura é por regras e não interpreta pedidos livres. Valide o impacto antes de agir.':'Ainda não há registros para priorizar. Comece alinhando com a liderança critérios de ativação, passagem comercial, escalonamento e expectativas de pleno. Registre os combinados no seu espaço.',notice:fallbackNotice,fallback_reason:gateway.reason,mode:'local_analysis',model:'vectta-local',scope:'trabalho',generated_at:new Date(now).toISOString()});}
+    if(input.module==='trabalho'||input.module==='metas')return reply({answer:workUnavailable?'Não consegui consultar seus registros. Tente novamente antes de priorizar.':(input.module==='metas'?goalsEvidenceAnswer(selectedWork?[selectedWork]:workItems.slice(0,100)):workEvidenceAnswer(selectedWork?[selectedWork]:workItems.slice(0,100),data.tasks,csToday(),requestedWorkId))+'\n\nCobertura: até 100 registros recentes; registro solicitado consultado separadamente. A leitura pode ser parcial.',notice:fallbackNotice,fallback_reason:gateway.reason,mode:'local_analysis',model:'vectta-local',scope:input.module,generated_at:new Date(now).toISOString()});
     const local=localStrategicAnswer(input.module,data,ranked,input.projectId,input.messages[input.messages.length-1]?.content||'');
     return reply({answer:local,notice:fallbackNotice,fallback_reason:gateway.reason,mode:'local_analysis',model:'vectta-local',scope:input.projectId?'cliente':'carteira',generated_at:new Date(now).toISOString(),provider_status:gateway.status||undefined});
   } catch {
     return reply({code:'unavailable',message:'Não consegui consultar a carteira ou gerar uma resposta agora. Tente novamente em instantes.'},503);
   }
 }
+
 
 

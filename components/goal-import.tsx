@@ -1,0 +1,12 @@
+'use client';
+import {useState} from 'react';
+import {parseGoalFile} from '../lib/goals';
+import type {WorkItem} from '../lib/workspace';
+import s from './workspace.module.css';
+
+export default function GoalImport({onReview,savedIds}:{onReview:(item:WorkItem)=>void;savedIds:Set<string>}){
+ const [rows,setRows]=useState<WorkItem[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(false);
+ async function read(file:File|undefined){if(!file)return;setError('');setLoading(true);try{if(file.size>100000)throw Error('Use um arquivo de até 100 KB.');setRows(parseGoalFile(await file.text(),file.name,()=>crypto.randomUUID()));}catch(e){setError(e instanceof Error?e.message:'Não foi possível ler o arquivo.');setRows([]);}finally{setLoading(false);}}
+ function template(){const url=URL.createObjectURL(new Blob(['\uFEFFtitulo;indicador;unidade;inicial;meta;atual;inicio;medicao;prazo;fonte;responsavel;acao\n'],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='modelo-metas-vectta.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+ return <details className={s.panel}><summary>Importar metas da empresa</summary><p>Envie uma planilha CSV ou um TXT com uma meta por linha. O conteúdo vira rascunho para você revisar e salvar, uma meta por vez.</p><p className={s.muted}>Excel: use “Salvar como CSV UTF-8”. PDF e imagens: copie o texto para um arquivo TXT. Limites: 50 metas e 100 KB. O arquivo original não é armazenado.</p><div className={s.actions}><button type="button" onClick={template}>Baixar modelo CSV</button></div><label>Arquivo de metas<input type="file" accept=".csv,.txt,text/csv,text/plain" disabled={loading} onChange={e=>{void read(e.target.files?.[0]);e.target.value='';}}/></label>{loading&&<p role="status">Lendo as metas…</p>}{error&&<p className={s.error} role="alert">{error}</p>}{!!rows.length&&<><p>{rows.filter(r=>savedIds.has(r.id)).length} de {rows.length} metas salvas desta importação.</p><div className={s.list}>{rows.map((r,i)=><article className={s.card} key={r.id}><h3>{i+1}. {r.title}</h3><p>{r.data.indicator||'Critério a confirmar'}</p><small>Meta: {r.data.target||'a definir'} {r.data.unit} · Prazo: {r.due_date||'a combinar'}</small><div className={s.actions}><button type="button" disabled={savedIds.has(r.id)} onClick={()=>onReview(r)}>{savedIds.has(r.id)?'Salva':'Revisar esta meta'}</button></div></article>)}</div></>}</details>;
+}

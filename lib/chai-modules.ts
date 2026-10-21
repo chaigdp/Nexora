@@ -1,5 +1,6 @@
 export const chaiModules = {
-  trabalho: {label:'Copiloto de trabalho',eyebrow:'chAI · Rotina e evolução',intro:'Conecta passagens comerciais, incidentes, reuniões e evidências para apoiar sua próxima decisão.',placeholder:'O que preciso resolver primeiro?',suggestions:['Organize minhas três prioridades de hoje','Revise lacunas da passagem comercial','Prepare meu resumo semanal com evidências','Como evoluir minha autonomia nos próximos 30 dias?']},
+  metas:{label:'Parceira de metas',eyebrow:'chAI · Metas e desenvolvimento',intro:'Acompanha metas da empresa, plano de evolução e contribuições com evidências.',placeholder:'O que falta para avançar nesta meta?',suggestions:['Revise minhas metas e seus critérios','Qual fato sustenta essa sugestão?','O que ainda falta saber?','Prepare uma conversa de evolução com a liderança']},
+  trabalho: {label:'Copiloto de trabalho',eyebrow:'chAI · Operação dos clientes',intro:'Conecta passagens comerciais, incidentes, reuniões e evidências para apoiar sua próxima decisão.',placeholder:'O que preciso resolver primeiro?',suggestions:['Organize minhas três prioridades de hoje','Revise lacunas da passagem comercial','Prepare meu resumo semanal com evidências','O que falta na passagem para CS?']},
   inicio: {
     label: 'Visão executiva',
     eyebrow: 'chAI · Centro de comando',
@@ -55,6 +56,7 @@ export type ChaiModule = keyof typeof chaiModules;
 
 export const chaiModuleLabels:Record<ChaiModule,string>={
   trabalho:'Espaço de trabalho',
+  metas:'Metas e desenvolvimento',
   inicio:'Início / visão geral',
   implantacoes:'Implantações',
   cs:'Acompanhamento de CS',
@@ -63,4 +65,5 @@ export const chaiModuleLabels:Record<ChaiModule,string>={
   testes:'Testes',
   rentabilidade:'Rentabilidade'
 };
+
 
