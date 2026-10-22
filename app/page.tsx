@@ -94,6 +94,7 @@ export default function Page(){
  const [inviteEmail,setInviteEmail]=useState('');
  const [inviteRole,setInviteRole]=useState<Exclude<WorkspaceRole,'owner'>>('analyst');
  const [view,setView]=useState('Início');
+ const [homeVisit,setHomeVisit]=useState(0);
  const [journeyDrafts,setJourneyDrafts]=useState<Record<string,Customer>>({});
  const [journeyId,setJourneyId]=useState('');
  const [journeySaving,setJourneySaving]=useState(false);
@@ -524,7 +525,7 @@ export default function Page(){
   try{await savePendingTask(next);}
   catch(e){setError(e instanceof Error?e.message:'Não foi possível atualizar a entrega.');}
  }
- function changeView(v:string){if(!window.dispatchEvent(new Event('vectta:navigate',{cancelable:true})))return;setPreviousView(view);setView(v);setSelected('');setMobile(false);setError('');}
+ function changeView(v:string){if(!window.dispatchEvent(new Event('vectta:navigate',{cancelable:true})))return;setPreviousView(view);setView(v);if(v==='Início')setHomeVisit(n=>n+1);setSelected('');setMobile(false);setError('');}
  async function savePendingTask(task:PendingTask){
   const validation=validatePending(task);
   if(validation)throw new Error(validation);
@@ -614,7 +615,7 @@ export default function Page(){
  {showJourney&&renderJourney(current.id)}
  <div className={s.detailGrid}><section className={s.panel}><div className={s.sectionHead}><h2>Plano de entregas</h2><span className={s.badge}>{progress(current)}%</span></div><div className={s.stack}>{tasks.filter(t=>t.project_id===current.id).map(t=><article className={s.task} key={t.id}><button className={s.check+(t.done?' '+s.done:'')} onClick={()=>toggleTask(t)}>{t.done&&<Check size={14}/>}</button><div><strong>{t.title}</strong><span>{t.owner} · {fmt(t.due_date)}</span></div>{t.critical&&<span className={s.badge+' '+s.bad}>Crítica</span>}</article>)}</div></section><div className={s.detailSide}><section className={s.panel}><span className={s.eyebrow}>PRONTIDÃO</span><h2>{progress(current)}% da implantação</h2><div className={s.progress}><i style={{width:progress(current)+'%'}}/></div><div className={s.gates}>{[['Entregas críticas resolvidas',!tasks.some(t=>t.project_id===current.id&&t.critical&&!t.done)],['Requisitos aprovados',ops.some(o=>o.project_id===current.id&&o.kind==='Requisito'&&o.status==='Aprovado')],['Testes com evidência',ops.some(o=>o.project_id===current.id&&o.kind==='Teste'&&o.status==='Aprovado'&&o.evidence)],['Sem chamados impeditivos',!ops.some(o=>o.project_id===current.id&&o.kind==='Chamado'&&o.priority==='Alta')]].map(([label,ok])=><div key={String(label)} className={s.gate+(ok?' '+s.ok:'')}><span>{ok?<Check size={14}/>:<Clock3 size={14}/>}</span><b>{String(label)}</b></div>)}</div></section><section className={s.panel}><span className={s.eyebrow}>CONTATO DO CLIENTE</span><h2>{current.contact_name||'Contato não cadastrado'}</h2><p>{current.contact_email||'Sem e-mail'}{current.contact_phone?' · '+current.contact_phone:''}</p><div className={s.sectionHead}><span>Canal preferido</span><span className={s.badge}>{current.preferred_channel||'—'}</span></div></section><section className={s.panel}><span className={s.eyebrow}>ESCOPO</span><p>{current.scope||'Escopo ainda não registrado.'}</p><div className={s.sectionHead}><span>Risco atual</span><span className={s.badge+' '+badge(risk(current).level)}>{risk(current).level}</span></div></section></div></div></>;
  else if(view==='Jornada e passagem')body=renderJourney(journeyId);
- else if(view==='Início'||view==='Metas')body=<WorkWorkspace key={view} mode={view==='Metas'?'goals':'operations'} token={session?.access_token||''} projects={projects} tasks={tasks} onNavigate={changeView} onAsk={(prompt,projectId)=>setJourneyCommand({id:Date.now(),prompt,projectId:projectId||''})}/>;
+ else if(view==='Início'||view==='Metas')body=<WorkWorkspace key={view==='Início'?'home-'+homeVisit:view} mode={view==='Metas'?'goals':'operations'} token={session?.access_token||''} projects={projects} tasks={tasks} onNavigate={changeView} onAsk={(prompt,projectId)=>setJourneyCommand({id:Date.now(),prompt,projectId:projectId||''})}/>;
  else if(view==='Acompanhamento de CS')body=<CustomerSuccess data={{projects,tasks,feedbacks,operations:ops}} demo={demo} token={session?.access_token||''} owner={displayName} onSave={saveCSPlan} onOpen={id=>{setSelected(id);setShowJourney(true);}}/>;
  else if(view==='Visão geral')body=<><header className={s.pageHead}><div><span className={s.eyebrow}>VISÃO GERAL</span><h1>Centro de comando da implantação.</h1><p>Saúde da carteira, riscos, prazos, execução e resultado em uma única leitura.</p></div><div className={s.actions}><button className={s.btn} onClick={()=>changeView('Implantações')}><Layers3 size={16}/> Ver carteira</button><button className={s.btn+' '+s.primary} onClick={()=>setModal(true)}><Plus size={16}/> Nova implantação</button></div></header>
  <section className={s.overviewKpis}>
@@ -714,7 +715,7 @@ export default function Page(){
 
  return <div className={s.shell}>
   <aside className={s.sidebar+(mobile?' '+s.open:'')}>
-   <div className={s.brandRow}><img className={s.vt} src={VT} alt="VT"/><div className={s.brandName}>Vectta</div></div>
+   <button type="button" className={s.brandRow+' '+s.brandHome} onClick={()=>changeView('Início')} aria-label="Vectta: voltar ao Início" title="Voltar ao Início"><img className={s.vt} src={VT} alt=""/><span className={s.brandName}>Vectta</span></button>
    <span className={s.workspace}>ESPAÇO DA ANALISTA</span>
    <nav className={s.nav} aria-label="Navegação principal">{[
     {title:'Dia a dia dos clientes',labels:['Início','Implantações','Jornada e passagem','Pendências','Acompanhamento de CS'],expanded:true},

@@ -642,3 +642,5 @@ button.csKpi:hover{
 
 
 .navGroup{margin:3px 0 12px}.navGroup summary{cursor:pointer;color:#abb6e5;font-size:10px;font-weight:700;letter-spacing:.6px;padding:10px 12px}.navGroup summary:focus-visible{outline:2px solid #14d8ff;outline-offset:2px}.navGroup button{width:100%;margin-top:3px}
+
+.brandHome{width:100%;margin:0;border:0;border-radius:12px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}.brandHome:hover{background:rgba(20,216,255,.06)}.brandHome:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
