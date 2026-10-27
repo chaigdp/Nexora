@@ -208,7 +208,7 @@ export default function Page(){
   setBusy(true);setError('');setNotice('');
   try{
    if(mode==='forgot'){
-    await auth('recover',{email,redirect_to:location.origin});setNotice('Se o e-mail existir, enviamos um link de recuperação.');setMode('login');
+    await auth('recover?redirect_to='+encodeURIComponent(location.origin),{email:email.trim()});setNotice('Se o e-mail existir, enviamos um link de recuperação. Use apenas o e-mail mais recente.');setMode('login');
    }else if(mode==='register'){
     const j=await auth('signup',{email,password,data:{full_name:name}});
     if(j.access_token){setSession(j);localStorage.setItem('vectta.session',JSON.stringify(j))}else{setNotice('Conta criada. Confira seu e-mail se a confirmação estiver ativa.');setMode('login')}
