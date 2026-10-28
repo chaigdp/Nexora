@@ -6,9 +6,9 @@ import {goalFields,goalProgress,isGoal} from '../lib/goals';
 import GoalImport from './goal-import';
 import MeetingReviewEditor from './meeting-review';
 import s from './workspace.module.css';
-type Props={mode?:'operations'|'goals';token:string;projects:{id:string;client:string}[];tasks:WorkTask[];onNavigate:(view:string)=>void;onAsk:(prompt:string,projectId?:string)=>void};
-export default function WorkWorkspace({mode='operations',token,projects,tasks,onNavigate,onAsk}:Props){
- const [tab,setTab]=useState<WorkKind|'today'|'cs'|'goal'|'plan'>(mode==='goals'?'goal':'today'),[items,setItems]=useState<WorkItem[]>([]),[draft,setDraft]=useState<WorkItem|null>(null),[dirty,setDirty]=useState(false),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(''),[query,setQuery]=useState(''),[limited,setLimited]=useState(false);
+type Props={initialTab?:WorkKind;mode?:'operations'|'goals';token:string;projects:{id:string;client:string}[];tasks:WorkTask[];onNavigate:(view:string)=>void;onAsk:(prompt:string,projectId?:string)=>void};
+export default function WorkWorkspace({initialTab,mode='operations',token,projects,tasks,onNavigate,onAsk}:Props){
+ const [tab,setTab]=useState<WorkKind|'today'|'cs'|'goal'|'plan'>(mode==='goals'?'goal':initialTab||'today'),[items,setItems]=useState<WorkItem[]>([]),[draft,setDraft]=useState<WorkItem|null>(null),[dirty,setDirty]=useState(false),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(''),[query,setQuery]=useState(''),[limited,setLimited]=useState(false);
  const [loaded,setLoaded]=useState(false);
  const [reviewing,setReviewing]=useState(false),[csProject,setCsProject]=useState('');
  const lock=useRef(false);const today=workToday();const goalMode=mode==='goals';const operationItems=items.filter(i=>i.kind!=='growth');
