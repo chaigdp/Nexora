@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {registerHooks} from 'node:module';
+registerHooks({resolve(s,c,n){return n(s.startsWith('.')&&!/\.[a-z]+$/.test(s)?s+'.ts':s,c);}});
+const {homeMoment,quoteParts,CLOCK_INTERVAL_MS}=await import('../lib/home-clock.ts');
+const {homeQuotes}=await import('../lib/home-quotes.ts');
+const at=(day,h,m=0,s=0)=>homeMoment(new Date(2026,9,day,h,m,s));
+test('250 supplied quotes, all unique, with authors',()=>{assert.equal(homeQuotes.length,250);assert.equal(new Set(homeQuotes.map(q=>q.text)).size,250);assert(homeQuotes.every(q=>q.text&&q.author));});
+test('ten-minute boundaries, negative modulo and afternoon restart',()=>{assert.equal(at(26,7,50).slot,49);assert.equal(at(26,7,59,59).slot,49);assert.equal(at(26,8).slot,0);assert.equal(at(26,8,9,59).slot,0);assert.equal(at(26,8,10).slot,1);assert.equal(at(26,16,19,59).slot,49);assert.equal(at(26,16,20).slot,0);assert.equal(at(26,16,30).slot,1);assert.equal(at(26,0).slot,2);assert.equal(CLOCK_INTERVAL_MS,30000);});
+test('weekday schedule visits all 250 once; repeats following week',()=>{const ids=[];for(let d=26;d<=30;d++)for(let s=0;s<50;s++){const m=480+10*s;const a=at(d,Math.floor(m/60),m%60);ids.push(a.index);assert.equal(a.index,at(d+7,Math.floor(m/60),m%60).index);}assert.deepEqual(ids,Array.from({length:250},(_,i)=>i));});
+test('Saturday repeats Monday and Sunday Tuesday, midnight changes day',()=>{assert.equal(at(31,8).index,at(26,8).index);assert.equal(at(32,8).index,at(27,8).index);assert.equal(at(27,0).group,1);assert.equal(at(26,23,59).group,0);});
+test('greetings follow local hour and date is Portuguese',()=>{assert.equal(at(26,11,59).greeting,'Bom dia');assert.equal(at(26,12).greeting,'Boa tarde');assert.equal(at(26,18).greeting,'Boa noite');assert.match(at(26,8).date,/segunda-feira/);assert.deepEqual(at(26,10),at(26,10));});
+test('gradient splitting preserves every original quote exactly',()=>{for(const q of homeQuotes){const p=quoteParts(q.text);assert.equal([p.start,p.end].filter(Boolean).join(' '),q.text);assert(p.end.length>0);}});
