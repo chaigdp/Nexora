@@ -23,7 +23,7 @@ Nenhuma tabela, política de acesso, senha, carteira ou registro antigo foi remo
 
 ## Validação
 
-Suíte existente: 66 testes automatizados aprovados. Nova suíte inicial: 13 testes aprovados sobre cálculos, origem, datas, autonomia, progressão, propriedade, persistência, concorrência e impedimentos operacionais. Teste de autenticação existente aprovado. TypeScript e build de produção verificados no código final; revisão visual em ambiente separado com dados fictícios, quando disponível.
+Suíte existente: 66 testes automatizados aprovados. Nova suíte: 15 testes aprovados sobre cálculos, origem, datas, autonomia, progressão, propriedade, persistência, concorrência e impedimentos operacionais. Teste de autenticação existente aprovado. TypeScript e build de produção verificados no código final; revisão visual em prévia separada com dados fictícios. Foram exercitados conclusão com evidência, salvamento de teste, cálculo de GMV e bloqueio de autonomia inválida. A prévia de teste foi retirada da versão de produção.
 
 A validação de persistência desta entrega usa respostas controladas que exercitam a sequência autenticação → leitura → validação → escrita → reabertura. Não equivale a um teste autenticado no banco de produção. A sessão de navegador disponível encontrou a tela de login, sem acesso à carteira pessoal.
 

@@ -28,8 +28,9 @@ export async function handleOperatingSave(req:Request,request:typeof fetch=fetch
   }
   const next={...plan,revision:previous.revision+1,history:changed?[...previous.history,{stage:previous.stage,date:localDay(),evidence:'Ações da etapa concluídas com evidências.'}].slice(-30):previous.history};
   const metadata={...project.metadata,[PLAN_KEY]:next};
-  const phase=complete?'Concluída':next.stage==='handoff'?'Acompanhamento':changed?stages.find(s=>s.key===next.stage)!.phase:project.phase;
-  const saved=await request(url+'&updated_at=eq.'+encodeURIComponent(project.updated_at),{method:'PATCH',headers:{...headers,Prefer:'return=representation'},body:JSON.stringify({metadata,phase,...(complete?{completed_date:localDay()}:project.phase==='Concluída'?{completed_date:null}:{})}),cache:'no-store',signal:AbortSignal.timeout(10000)});
+  const reopened=previous.actions.some(a=>a.id.startsWith('handoff:')&&a.status==='done'&&plan.actions.find(x=>x.id===a.id)?.status!=='done');
+  const phase=complete?'Concluída':next.stage==='handoff'?(reopened?'Acompanhamento':project.phase==='Concluída'?'Concluída':'Acompanhamento'):changed?stages.find(s=>s.key===next.stage)!.phase:project.phase;
+  const saved=await request(url+'&updated_at=eq.'+encodeURIComponent(project.updated_at),{method:'PATCH',headers:{...headers,Prefer:'return=representation'},body:JSON.stringify({metadata,phase,...(complete?{completed_date:localDay()}:reopened?{completed_date:null}:{})}),cache:'no-store',signal:AbortSignal.timeout(10000)});
   if(!saved.ok)return reply({message:saved.status===403?'Seu perfil não permite editar este cliente.':'Não foi possível salvar. O rascunho foi preservado.'},saved.status===403?403:503);
   const result=await saved.json();if(!Array.isArray(result)||!result[0])return reply({message:'Conflito de atualização. Recarregue a carteira antes de salvar.'},409);
   return reply({project:result[0]});
