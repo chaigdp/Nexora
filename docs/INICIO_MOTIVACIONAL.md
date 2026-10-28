@@ -25,3 +25,7 @@ Minutos locais desde meia-noite: `hora * 60 + minuto`. Índice diário: `((floor
 `lib/home-clock.ts`: cálculo puro e saudações. `components/home-welcome.tsx`: relógio, conteúdo e ciclo de vida. `components/home-welcome.module.css`: apresentação. `public/onfly-chai-high-five.png`: arquivo selecionado, sem alterações. Os testes `tests/home-clock.mjs` verificam 250 textos únicos, a semana completa, limites de dez minutos, módulo negativo, fim de semana, saudações e preservação do texto no degradê. Integrados ao fluxo de validação do GitHub.
 
 Não há mudanças na autenticação, dados de clientes, permissões, banco, metas ou regras de implantação.
+
+## Validação da entrega
+
+87 testes aprovados, incluindo os seis testes novos do relógio, além das verificações de sessão. Compilação de produção e TypeScript aprovados. Cabeçalho conferido visualmente em prévia isolada com os ativos reais. A rota temporária de prévia foi retirada antes da integração à versão principal. A carteira autenticada da usuária não foi acessada nesta validação.
