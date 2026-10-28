@@ -1,3 +1,5 @@
+import {findSolutions} from './solutions-api';
+import {solutionAnswer} from './problem-solutions';
 import {PLAN_KEY,readPlan,metrics,nextMoves,stages,causeAdvice,type OperatingProject} from './client-operating';
 import {readReview,workEvidenceAnswer,workMetrics} from './post-meeting';
 import {goalsEvidenceAnswer} from './goals';
@@ -205,6 +207,12 @@ export async function handleChai(req:Request,options:Options={}) {
     const maxPerMinute=5;
     if(limit.count>=maxPerMinute)return reply({message:'Você fez várias perguntas seguidas. Aguarde um minuto e tente novamente.'},429);
     limit.count++;minuteLimits.set(rateKey,limit);
+
+    const question=input.messages.at(-1)?.content||'';
+    if(/^Consultar soluções:/i.test(question)){
+      const cases=await findSolutions(question.replace(/^Consultar soluções:/i,''),headers,request);
+      return reply({answer:solutionAnswer(cases),mode:'knowledge',model:'vectta-case-search',scope:'soluções validadas',generated_at:new Date().toISOString()});
+    }
 
     let data:CSData;
     {

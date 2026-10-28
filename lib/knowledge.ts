@@ -1,7 +1,7 @@
 export const KNOWLEDGE_BUCKET='chai-knowledge';
 export const MAX_FILE_BYTES=20*1024*1024;
 export const MAX_TEXT_CHARS=200000;
-export type KnowledgeSource={id:string;user_id:string;title:string;kind:'text'|'link'|'file';url:string|null;original_name:string|null;file_path:string|null;file_size:number;content:string;notes:string;status:'received'|'readable'|'failed';approved:boolean;archived:boolean;created_at:string;updated_at:string};
+export type KnowledgeSource={problem_case?:import('./problem-solutions').ProblemCase|null;id:string;user_id:string;title:string;kind:'text'|'link'|'file';url:string|null;original_name:string|null;file_path:string|null;file_size:number;content:string;notes:string;status:'received'|'readable'|'failed';approved:boolean;archived:boolean;created_at:string;updated_at:string};
 export const sourceStatus={received:'Aguardando leitura',readable:'Texto disponível',failed:'Envio incompleto'};
 export function normalizeSourceUrl(input:string){
  const value=input.trim();if(!value)return null;
