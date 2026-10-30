@@ -21,3 +21,32 @@ test('draft restoration preserves exact text and retry identifier; broken drafts
  assert.deepEqual(parseKnowledgeDraft(JSON.stringify(draft)),draft);
  assert.equal(parseKnowledgeDraft('{broken'),null);assert.equal(parseKnowledgeDraft(JSON.stringify({...draft,text:5})),null);
 });
+
+test('transient 503 retries with the identical ID and confirms persisted content',async()=>{
+ const row={id:'22222222-2222-4222-8222-222222222222',title:'Nota',kind:'text',content:'Persistir'};
+ let posts=0;
+ const request=async(path,init)=>{
+  if(init?.method==='POST'){
+   posts++;
+   assert.equal(JSON.parse(init.body).id,row.id);
+   if(posts===1)throw Error('O serviço de dados está temporariamente indisponível.');
+   return Response.json([row]);
+  }
+  return Response.json([]);
+ };
+ assert.deepEqual(await insertKnowledge(request,row),row);
+ assert.equal(posts,2);
+});
+test('permanent permission errors do not retry or claim a save',async()=>{
+ let requests=0;
+ await assert.rejects(insertKnowledge(async()=>{requests++;throw Error('Sua conta não recebeu permissão para esta operação.');},{id:'33333333-3333-4333-8333-333333333333'}),/permissão/);
+ assert.equal(requests,1);
+});
+test('three unavailable attempts never claim a successful save',async()=>{
+ let posts=0;
+ await assert.rejects(insertKnowledge(async(path,init)=>{
+  if(init?.method==='POST')posts++;
+  throw Error('O serviço de dados está temporariamente indisponível.');
+ },{id:'44444444-4444-4444-8444-444444444444'}),/indisponível/);
+ assert.equal(posts,3);
+});
