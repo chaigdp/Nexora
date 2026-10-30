@@ -20,6 +20,7 @@ const JourneyWorkspace=dynamic(()=>import('../components/implantation-journey').
 import {projectJourney,savedJourney,journeyRevision,JOURNEY_KEY,journeySaveErrors} from '../lib/journey-store';
 import {todayISO,type Customer} from '../lib/implantation-strategy';
 import ChaiAssistant from '../components/chai-assistant';
+import KnowledgePortal from '../components/knowledge-portal';
 import type {ChaiModule} from '../lib/chai-modules';
 import type {CSOperation} from '../lib/customer-success';
 
@@ -62,7 +63,7 @@ const trailStages=[
  {phase:'Concluída',title:'Evolução contínua',desc:'Encerramento formal, lições aprendidas, ganhos e próximos ciclos.',gate:'Encerramento aceito, resultados registrados e próximos passos definidos.'}
 ];
 const nav=[
-['Soluções de problemas',BookOpen],['Início',LayoutDashboard],['Crescimento',TrendingUp],['Treinamentos',BookOpen],['Conhecimento',BookOpen],['Notas e reuniões',ClipboardCheck],['Base de conhecimento',BookOpen],['Metas',ClipboardCheck],['Visão geral',ChartNoAxesCombined],['Implantações',Layers3],['Jornada e passagem',ClipboardCheck],['Pendências',ListTodo],
+['Soluções de problemas',BookOpen],['Início',LayoutDashboard],['Crescimento',TrendingUp],['Treinamentos',BookOpen],['Conhecimento',BookOpen],['Notas e reuniões',ClipboardCheck],['Metas',ClipboardCheck],['Visão geral',ChartNoAxesCombined],['Implantações',Layers3],['Jornada e passagem',ClipboardCheck],['Pendências',ListTodo],
 ['Acompanhamento de CS',Headphones],['Resultados',WalletCards],['Relatórios e dados',ChartNoAxesCombined],['Feedbacks',Headphones],['Campanhas',Plug],['Administração',Settings2],['Riscos e estratégias',AlertTriangle],
 ['Cronograma',CalendarDays],['Requisitos',ClipboardCheck],['Chamados',Headphones],
 ['Processos',Workflow],['Entrada em operação',Check],['Integrações',Plug],['Rentabilidade',WalletCards]
@@ -98,7 +99,7 @@ export default function Page(){
  const [inviteEmail,setInviteEmail]=useState('');
  const [inviteRole,setInviteRole]=useState<Exclude<WorkspaceRole,'owner'>>('analyst');
  const [view,setView]=useState('Início');
- useEffect(()=>{if(new URLSearchParams(location.search).get('aba')==='solucoes')setView('Soluções de problemas');},[]);
+ useEffect(()=>{const aba=new URLSearchParams(location.search).get('aba');if(aba==='solucoes')setView('Soluções de problemas');else if(aba==='conhecimento')setView('Conhecimento');},[]);
  const [homeVisit,setHomeVisit]=useState(0);
  const [journeyDrafts,setJourneyDrafts]=useState<Record<string,Customer>>({});
  const [journeyId,setJourneyId]=useState('');
@@ -617,6 +618,7 @@ export default function Page(){
  const operating=operatingViews.includes(view)||!!current;
  let body:any;
  if(operating)body=<ClientOperating key={selected||view} view={(operatingViews.includes(view)?view:'Implantações') as OperatingView} projects={projects} token={session?.access_token||''} selectedId={selected} externalPending={tasks} onOpen={id=>{if(window.dispatchEvent(new Event('vectta:navigate',{cancelable:true})))setSelected(id)}} onCreate={()=>setModal(true)} onSaved={p=>setProjects(all=>all.map(x=>x.id===p.id?{...x,...p}:x))} onLegacy={changeView}/>;
+ else if(view==='Conhecimento')body=<KnowledgePortal embedded/>;
  else if(view==='Soluções de problemas')body=<ProblemSolutions token={session?.access_token||''}/>;
  else if(view==='Notas e reuniões'||view==='Base de conhecimento')body=<WorkWorkspace key={view} initialTab={view==='Base de conhecimento'?'learning':'meeting'} token={session?.access_token||''} projects={projects} tasks={tasks} onNavigate={changeView} onAsk={(prompt,projectId)=>setJourneyCommand({id:Date.now(),prompt,projectId:projectId||''})}/>;
  else if(view==='Jornada e passagem')body=renderJourney(journeyId);
