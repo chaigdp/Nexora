@@ -20,14 +20,35 @@ export type KnowledgeRequest=(path:string,init?:RequestInit)=>Promise<Response>;
 // overwriting an already committed record after a lost response.
 export async function insertKnowledge(request:KnowledgeRequest,row:Record<string,unknown>){
  if(typeof row.id!=='string')throw Error('O envio precisa de um identificador.');
- const response=await request('/rest/v1/knowledge_sources?on_conflict=id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=ignore-duplicates,return=representation'},body:JSON.stringify(row)});
- const rows=await response.json() as KnowledgeSource[];
- if(!Array.isArray(rows))throw Error('Não foi possível confirmar o registro.');
- if(rows[0]?.id===row.id)return rows[0];
+ // A response can be lost after the server commits. Always reuse the same ID.
+ // Only transient gateway/timeout failures are retried; validation and permission
+ // failures must surface immediately, without repeated writes.
  const query=new URLSearchParams({select:'*',id:'eq.'+row.id,limit:'1'});
- const saved=await (await request('/rest/v1/knowledge_sources?'+query)).json() as KnowledgeSource[];
- if(!Array.isArray(saved)||saved[0]?.id!==row.id)throw Error('Não foi possível confirmar o registro. O rascunho foi mantido.');
- return saved[0];
+ const confirm=async()=>{
+  const saved=await (await request('/rest/v1/knowledge_sources?'+query)).json() as KnowledgeSource[];
+  if(!Array.isArray(saved))throw Error('Não foi possível confirmar o registro.');
+  return saved.find(item=>item.id===row.id)||null;
+ };
+ for(let attempt=0;attempt<3;attempt++){
+  try{
+   const response=await request('/rest/v1/knowledge_sources?on_conflict=id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=ignore-duplicates,return=representation'},body:JSON.stringify(row)});
+   const rows=await response.json() as KnowledgeSource[];
+   if(!Array.isArray(rows))throw Error('Não foi possível confirmar o registro.');
+   if(rows[0]?.id===row.id)return rows[0];
+   const saved=await confirm();
+   if(saved)return saved;
+   throw Error('Não foi possível confirmar o registro. O rascunho foi mantido.');
+  }catch(error){
+   const message=error instanceof Error?error.message:'';
+   const transient=(error instanceof Error&&['TimeoutError','AbortError'].includes(error.name))||/temporariamente indisponível|demorou a responder|conectar ao serviço de dados/i.test(message);
+   if(!transient)throw error;
+   // A read may succeed even if the preceding POST response was lost.
+   try{const saved=await confirm();if(saved)return saved;}catch{/* The gateway may also be unavailable for reads. */}
+   if(attempt===2)throw error;
+   await new Promise(resolve=>setTimeout(resolve,400*(attempt+1)));
+  }
+ }
+ throw Error('Não foi possível confirmar o registro. O rascunho foi mantido.');
 }
 export type KnowledgeDraft={tab:'text'|'link'|'file';title:string;text:string;url:string;submissionId:string;signature:string};
 export function parseKnowledgeDraft(raw:string|null):KnowledgeDraft|null{
