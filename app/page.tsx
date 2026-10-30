@@ -63,7 +63,7 @@ const trailStages=[
  {phase:'Concluída',title:'Evolução contínua',desc:'Encerramento formal, lições aprendidas, ganhos e próximos ciclos.',gate:'Encerramento aceito, resultados registrados e próximos passos definidos.'}
 ];
 const nav=[
-['Soluções de problemas',BookOpen],['Início',LayoutDashboard],['Crescimento',TrendingUp],['Treinamentos',BookOpen],['Conhecimento',BookOpen],['Notas e reuniões',ClipboardCheck],['Metas',ClipboardCheck],['Visão geral',ChartNoAxesCombined],['Implantações',Layers3],['Jornada e passagem',ClipboardCheck],['Pendências',ListTodo],
+['Soluções de problemas',BookOpen],['Início',LayoutDashboard],['Crescimento',TrendingUp],['Treinamentos',BookOpen],['Cérebro da chAI',BookOpen],['Notas e reuniões',ClipboardCheck],['Metas',ClipboardCheck],['Visão geral',ChartNoAxesCombined],['Implantações',Layers3],['Jornada e passagem',ClipboardCheck],['Pendências',ListTodo],
 ['Acompanhamento de CS',Headphones],['Resultados',WalletCards],['Relatórios e dados',ChartNoAxesCombined],['Feedbacks',Headphones],['Campanhas',Plug],['Administração',Settings2],['Riscos e estratégias',AlertTriangle],
 ['Cronograma',CalendarDays],['Requisitos',ClipboardCheck],['Chamados',Headphones],
 ['Processos',Workflow],['Entrada em operação',Check],['Integrações',Plug],['Rentabilidade',WalletCards]
@@ -99,7 +99,7 @@ export default function Page(){
  const [inviteEmail,setInviteEmail]=useState('');
  const [inviteRole,setInviteRole]=useState<Exclude<WorkspaceRole,'owner'>>('analyst');
  const [view,setView]=useState('Início');
- useEffect(()=>{const aba=new URLSearchParams(location.search).get('aba');if(aba==='solucoes')setView('Soluções de problemas');else if(aba==='conhecimento')setView('Conhecimento');},[]);
+ useEffect(()=>{const aba=new URLSearchParams(location.search).get('aba');if(aba==='solucoes')setView('Soluções de problemas');else if(aba==='conhecimento')setView('Cérebro da chAI');},[]);
  const [homeVisit,setHomeVisit]=useState(0);
  const [journeyDrafts,setJourneyDrafts]=useState<Record<string,Customer>>({});
  const [journeyId,setJourneyId]=useState('');
@@ -618,7 +618,7 @@ export default function Page(){
  const operating=operatingViews.includes(view)||!!current;
  let body:any;
  if(operating)body=<ClientOperating key={selected||view} view={(operatingViews.includes(view)?view:'Implantações') as OperatingView} projects={projects} token={session?.access_token||''} selectedId={selected} externalPending={tasks} onOpen={id=>{if(window.dispatchEvent(new Event('vectta:navigate',{cancelable:true})))setSelected(id)}} onCreate={()=>setModal(true)} onSaved={p=>setProjects(all=>all.map(x=>x.id===p.id?{...x,...p}:x))} onLegacy={changeView}/>;
- else if(view==='Conhecimento')body=<KnowledgePortal embedded/>;
+ else if(view==='Cérebro da chAI')body=<KnowledgePortal embedded/>;
  else if(view==='Soluções de problemas')body=<ProblemSolutions token={session?.access_token||''}/>;
  else if(view==='Notas e reuniões'||view==='Base de conhecimento')body=<WorkWorkspace key={view} initialTab={view==='Base de conhecimento'?'learning':'meeting'} token={session?.access_token||''} projects={projects} tasks={tasks} onNavigate={changeView} onAsk={(prompt,projectId)=>setJourneyCommand({id:Date.now(),prompt,projectId:projectId||''})}/>;
  else if(view==='Jornada e passagem')body=renderJourney(journeyId);
@@ -725,8 +725,8 @@ export default function Page(){
    <button type="button" className={s.brandRow+' '+s.brandHome} onClick={()=>changeView('Início')} aria-label="Vectta: voltar ao Início" title="Voltar ao Início"><img className={s.vt} src={VT} alt=""/><span className={s.brandName}>Vectta</span></button>
    <span className={s.workspace}>ESPAÇO DA ANALISTA</span>
    <nav className={s.nav} aria-label="Navegação principal">{[
-    {title:'Seu centro de ação',labels:['Início','Implantações','Crescimento','Treinamentos','Soluções de problemas','Conhecimento','Resultados'],expanded:true},
-    {title:'Apoio à operação',labels:['Notas e reuniões','Base de conhecimento','Pendências','Acompanhamento de CS'],expanded:false},
+    {title:'Seu centro de ação',labels:['Início','Implantações','Crescimento','Treinamentos','Soluções de problemas','Cérebro da chAI','Resultados'],expanded:true},
+    {title:'Apoio à operação',labels:['Notas e reuniões','Pendências','Acompanhamento de CS'],expanded:false},
     {title:'Meu desenvolvimento',labels:['Metas'],expanded:false},
     {title:'Indicadores e gestão',labels:['Visão geral','Relatórios e dados','Feedbacks','Riscos e estratégias','Cronograma','Rentabilidade'],expanded:false},
     {title:'Recursos da operação',labels:['Requisitos','Chamados','Processos','Entrada em operação','Integrações','Campanhas'],expanded:false},
