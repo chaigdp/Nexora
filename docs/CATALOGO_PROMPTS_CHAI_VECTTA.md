@@ -190,5 +190,6 @@ A transcrição dos textos efetivamente usados e dos prompts auxiliares foi orga
 - `03-module-guidance.md`: textos integrais das nove orientações dinâmicas.
 - `04-conversation-starters.md`: sugestões de conversa apresentadas na interface.
 - `05-external-lab-superprompt.md`: snapshot do superprompt do laboratório, originalmente mantido no repositório `chaigdp/prompts-chai`.
+- `06-historical-continuity-prompt.md`: documento histórico de retomada de CS/chAI, preservado como referência e não usado no runtime.
 
 **Atenção:** esta biblioteca é uma cópia documental. O runtime ainda lê as constantes TypeScript em `lib/`. A edição dos Markdown não altera o comportamento da chAI até que a arquitetura seja migrada para carregar esses arquivos ou os textos sejam sincronizados manualmente no código.
