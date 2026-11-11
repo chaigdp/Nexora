@@ -16,6 +16,7 @@ Esta pasta preserva os textos de instrução e os prompts de conversa encontrado
 | [03-module-guidance.md](./03-module-guidance.md) | Instruções dinâmicas dos nove módulos | `lib/chai-assistant.ts` |
 | [04-conversation-starters.md](./04-conversation-starters.md) | Sugestões e prompts de usuário exibidos na interface | `lib/chai-modules.ts` |
 | [05-external-lab-superprompt.md](./05-external-lab-superprompt.md) | Superprompt do laboratório de simulação, originado em outro repositório | `chaigdp/prompts-chai` |
+| [06-historical-continuity-prompt.md](./06-historical-continuity-prompt.md) | Prompt histórico de retomada de CS/chAI | `prompts/2026-10-06-retomada-cs-chai.md` |
 
 ## Como o prompt ativo é montado
 
