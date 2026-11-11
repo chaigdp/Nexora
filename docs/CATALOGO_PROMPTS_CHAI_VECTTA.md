@@ -178,3 +178,17 @@ Ao alterar a inteligência da chAI:
 - adicionar ou atualizar cenários de teste para o comportamento alterado.
 
 **Importante:** este catálogo é um índice auditável da implementação encontrada. Ele não declara que os textos foram extraídos e duplicados integralmente, nem transforma regras locais em prompts de LLM. O código-fonte continua sendo a fonte de verdade.
+
+
+## 10. Biblioteca independente de prompts
+
+A transcrição dos textos efetivamente usados e dos prompts auxiliares foi organizada em `prompts/library/`:
+
+- `README.md`: índice, fluxo de composição e regras de manutenção.
+- `01-system-prompt.md`: template do prompt de sistema composto e regras gerais.
+- `02-playbooks.md`: textos integrais de `WORK_PLAYBOOK` e `STRATEGY_PLAYBOOK`.
+- `03-module-guidance.md`: textos integrais das nove orientações dinâmicas.
+- `04-conversation-starters.md`: sugestões de conversa apresentadas na interface.
+- `05-external-lab-superprompt.md`: snapshot do superprompt do laboratório, originalmente mantido no repositório `chaigdp/prompts-chai`.
+
+**Atenção:** esta biblioteca é uma cópia documental. O runtime ainda lê as constantes TypeScript em `lib/`. A edição dos Markdown não altera o comportamento da chAI até que a arquitetura seja migrada para carregar esses arquivos ou os textos sejam sincronizados manualmente no código.
